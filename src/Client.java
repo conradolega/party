@@ -2,6 +2,8 @@ import java.net.Socket;
 
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
+import org.newdawn.slick.Image;
+import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.state.BasicGameState;
 import org.newdawn.slick.state.StateBasedGame;
@@ -33,6 +35,8 @@ public class Client extends BasicGameState {
 	MyConnection conn;
 	MsgThread thread;
 	String msg;
+	Image ball;
+	float x = 0.00f, y = 0.00f, moveSpeed = 1.00f;
 	
 	public Client(int state) {
 		try {
@@ -47,19 +51,33 @@ public class Client extends BasicGameState {
 	@Override
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
+		ball = new Image("img/ball.png");
 	}
 
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
-		g.drawString(msg, 20, 20);
+		g.drawString(thread.msg, 20, 20);
+		g.drawImage(ball, x, y);
 	}
 
 	@Override
 	public void update(GameContainer gc, StateBasedGame sbg, int delta)
 			throws SlickException {
-		msg = thread.msg;
-		System.out.println("Message: " + msg);
+		Input input = gc.getInput();
+		
+		if (input.isKeyDown(Input.KEY_DOWN)) {
+			y += moveSpeed * delta;
+		}
+		if (input.isKeyDown(Input.KEY_RIGHT)) {
+			x += moveSpeed * delta;
+		}
+		if (input.isKeyDown(Input.KEY_LEFT)) {
+			x -= moveSpeed * delta;
+		}
+		if (input.isKeyDown(Input.KEY_UP)) {
+			y -= moveSpeed * delta;
+		}
 	}
 
 	@Override
