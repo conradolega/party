@@ -9,6 +9,8 @@ import org.newdawn.slick.state.BasicGameState;
 import org.newdawn.slick.state.StateBasedGame;
 
 
+// TODO player class
+
 class PlayerThread extends Thread {
 	
 	Socket socket;
@@ -16,13 +18,17 @@ class PlayerThread extends Thread {
 	String msg, name;
 	int active, drunk, id;
 	float x, y;
-
+	Player[] players = new Player[4];
+	
+	
 	public PlayerThread(Socket socket) {
 		this.socket = socket;
 		this.conn = new MyConnection(socket);
 		this.msg = "connected!";
 		this.active = 0;
 	}
+	
+	
 	
 	public void run() {
 		while (true) {
@@ -48,8 +54,9 @@ public class Client extends BasicGameState {
 	PlayerThread thread;
 	String msg;
 	Image[] balls = new Image[4];
-	PlayerThread[] players = new PlayerThread[4];
-	float moveSpeed = 1.00f;
+	//PlayerThread[] players = new PlayerThread[4];
+	Player[] players = new Player[4];
+	float moveSpeed = 1.00f, x = 0.00f, y = 0.00f;
 	int id;
 	
 	public Client(int state) {
@@ -65,7 +72,10 @@ public class Client extends BasicGameState {
 	@Override
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
-		for (int i = 0; i < 4; i++) balls[i] = new Image("img/ball.png");
+		for (int i = 0; i < 4; i++) {
+			players[i] = new PlayerThread();
+			balls[i] = new Image("img/ball.png");
+		}
 	}
 
 	@Override
@@ -73,13 +83,14 @@ public class Client extends BasicGameState {
 			throws SlickException {
 		g.drawString(thread.msg, 20, 20);
 		for (int i = 0; i < thread.active; i++) g.drawImage(balls[i], players[i].x, players[i].y);
+		g.drawImage(balls[0], x, y);
 	}
 
 	@Override
 	public void update(GameContainer gc, StateBasedGame sbg, int delta)
 			throws SlickException {
 		Input input = gc.getInput();
-		/*
+		
 		if (input.isKeyDown(Input.KEY_DOWN)) {
 			y += moveSpeed * delta;
 		}
@@ -92,7 +103,7 @@ public class Client extends BasicGameState {
 		if (input.isKeyDown(Input.KEY_UP)) {
 			y -= moveSpeed * delta;
 		}
-		*/
+		
 	}
 
 	@Override
