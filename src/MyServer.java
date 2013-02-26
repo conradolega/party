@@ -39,6 +39,7 @@ class ClientThread extends Thread {
 		try {
 			while (!quitted) {
 				this.msg = this.conn.getMessage() + " ";
+				//handles force quit
 				if(this.msg.equals("null ")){
 					socket.close();
 					break;
@@ -75,13 +76,12 @@ class ClientThread extends Thread {
 						this.sendMessage("Invalid command " + this.msg, true);
 					}
 				}
-				else this.server.sendToAll(this.name + ": " + this.msg, false);
+				else this.server.sendToAll(this.msg, false);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-
 }
 
 public class MyServer {
@@ -134,6 +134,7 @@ public class MyServer {
 			System.out.println("Server: Starting server...");
 			ServerSocket ssocket = new ServerSocket(8888);
 			System.out.println("Server: Waiting for connections...");
+			//TODO give the new client his ID
 			while (true) {
 				Socket socket = ssocket.accept();
 				System.out.println("Server: " + socket.getInetAddress() + " connected!");
@@ -141,8 +142,7 @@ public class MyServer {
 				sendToAll(clients.get(clients.size() - 1).name + " has connected", true);
 				clients.get(clients.size() - 1).start();
 				clients.get(clients.size() - 1).sendMessage("Number: " + (clients.size() - 1), false);
-				sendList();
-				
+				sendList();			
 				connected++;
 			}
 		} catch (Exception e) {
@@ -151,8 +151,6 @@ public class MyServer {
 	}
 	
 	public static void main(String[] args) {
-		MyServer serve = new MyServer();
+		new MyServer();
 	}
-	
-
 }

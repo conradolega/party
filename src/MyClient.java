@@ -1,13 +1,16 @@
 package src;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.*;
 import java.net.*;
 import javax.swing.*;
 
 
 public class MyClient extends JFrame {
  
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	JLabel chatWindow, onlineClients;
 	JPanel leftPanel, rightPanel, msgPanel, chatPanel, onlinePanel;
 	JTextArea leftText, rightText, msgField;
@@ -129,7 +132,7 @@ public class MyClient extends JFrame {
 	}
 	
 	public static void main(String[] args) {
-		MyClient mc = new MyClient();
+		new MyClient();
 	}
 
 }

@@ -10,28 +10,58 @@ import org.newdawn.slick.SlickException;
 import org.newdawn.slick.state.BasicGameState;
 import org.newdawn.slick.state.StateBasedGame;
 
-
-// TODO player class
+//Player class to hold image, position, drunk_level;
+class Player{
+	float x,y;
+	int drunk_level;
+	boolean is_jumping; //physics
+	Image sprite;
+	
+	public Player() throws SlickException{
+		x = 1.0f;
+		y = 1.0f; //set random starting location
+		drunk_level = 0;
+		is_jumping = false;
+		sprite = new Image("img/ball.png");
+	}
+	
+	public float getX(){
+		return x;
+	}
+	
+	public float getY(){
+		return y;
+	}
+	
+	public void setX(float newx){
+		x = newx;
+	}
+	
+	public void setY(float newy){
+		y = newy;
+	}
+	
+	public Image getImage(){
+		return sprite;
+	}
+}
 
 class PlayerThread extends Thread {
-	
 	Socket socket;
 	MyConnection conn;
-	String msg, name;
-	int active, drunk, id;
-	float x, y;
-	Player[] players = new Player[4];
+	String msg;
+	int active, id;
+	Player[] players; //reference to the players in the Client class
 	
-	
-	public PlayerThread(Socket socket) {
+	public PlayerThread(Socket socket, Player[] players) {
 		this.socket = socket;
 		this.conn = new MyConnection(socket);
 		this.msg = "connected!";
 		this.active = 0;
+		this.players = players;
 	}
 	
-	
-	
+	//TODO manage protocols here 
 	public void run() {
 		while (true) {
 			msg = conn.getMessage();
@@ -41,8 +71,30 @@ class PlayerThread extends Thread {
 				for (int i = 0; i < msg.length(); i++) {
 					if (msg.charAt(i) == '\0') active++;
 				}
-			} else if (msg.substring(0, 7).equals("Number")) {
+			} 
+			else if (msg.substring(0, 7).equals("Number")) {
 				id = Integer.parseInt(msg.substring(10));
+			}
+			//PROTOCOL: MOVE <PLAYERID> <X> <Y>
+			//example: MOVE 2 356 45
+			else if(msg.substring(0,4).equals("MOVE")){
+				int player_id = (int)msg.charAt(5);
+				int i;
+				float x,y;
+				String temp_x = "";
+				//PARSE THE <X> AND <Y>
+				for(i=5; i<msg.length(); i++){
+					if(msg.charAt(i)==' '){
+						break;
+					}
+					else{
+						temp_x += msg.charAt(i);
+					}
+				}
+				x = Float.parseFloat(temp_x);
+				y = Float.parseFloat(msg.substring(i+1));
+				players[player_id].setX(x);
+				players[player_id].setY(y);
 			}
 			active = 0;
 		}
@@ -52,60 +104,65 @@ class PlayerThread extends Thread {
 public class Client extends BasicGameState {
 
 	Socket socket;
-	MyConnection conn;
 	PlayerThread thread;
-	String msg;
-	Image[] balls = new Image[4];
-	//PlayerThread[] players = new PlayerThread[4];
 	Player[] players = new Player[4];
-	float moveSpeed = 1.00f, x = 0.00f, y = 0.00f;
-	int id;
+	float moveSpeed = 1.00f;
+	int id = 0; //remove 0!
 	
 	public Client(int state) {
 		try {
 			socket = new Socket("127.0.0.1", 8888);
-			thread = new PlayerThread(socket);
-			thread.start();
-		} catch (Exception e) {
-			
-		}
+		} catch (Exception e) {}
 	}
 
 	@Override
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
-		for (int i = 0; i < 4; i++) {
-			players[i] = new PlayerThread();
-			balls[i] = new Image("img/ball.png");
-		}
+		players[id] = new Player();
+		thread = new PlayerThread(socket, players);
+		thread.start();
 	}
 
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
 		g.drawString(thread.msg, 20, 20);
-		for (int i = 0; i < thread.active; i++) g.drawImage(balls[i], players[i].x, players[i].y);
-		g.drawImage(balls[0], x, y);
+		//value of thread.active?
+		thread.active = 1;
+		//render all the images of the players
+		for (int i = 0; i < thread.active; i++){
+			g.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
+		}
 	}
 
 	@Override
 	public void update(GameContainer gc, StateBasedGame sbg, int delta)
 			throws SlickException {
+		float past_x = players[id].getX();
+		float past_y = players[id].getY();
 		Input input = gc.getInput();
 		
 		if (input.isKeyDown(Input.KEY_DOWN)) {
-			y += moveSpeed * delta;
+			players[id].setY(players[id].getY() + moveSpeed * delta);
+//			y += moveSpeed * delta;
 		}
 		if (input.isKeyDown(Input.KEY_RIGHT)) {
-			x += moveSpeed * delta;
+			players[id].setX(players[id].getX() + moveSpeed * delta);
+//			x += moveSpeed * delta;
 		}
 		if (input.isKeyDown(Input.KEY_LEFT)) {
-			x -= moveSpeed * delta;
+			players[id].setX(players[id].getX() - moveSpeed * delta);
+//			x -= moveSpeed * delta;
 		}
 		if (input.isKeyDown(Input.KEY_UP)) {
-			y -= moveSpeed * delta;
+			players[id].setY(players[id].getY() - moveSpeed * delta);
+//			y -= moveSpeed * delta;
 		}
 		
+		//check for changes in coordinates then broadcast the MOVE message
+		if(past_x!=players[id].getX() || past_y!=players[id].getY()){
+			thread.conn.sendMessage("MOVE "+id+" "+players[id].getX()+" "+players[id].getY());
+		}
 	}
 
 	@Override

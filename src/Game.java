@@ -1,4 +1,5 @@
 package src;
+
 import org.newdawn.slick.AppGameContainer;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.SlickException;
@@ -32,6 +33,7 @@ public class Game extends StateBasedGame {
 		try {
 			AppGameContainer agc = new AppGameContainer(new Game(NAME));
 			agc.setDisplayMode(800, 600, false);
+		//	agc.setTargetFrameRate(60);
 			agc.start();
 		} catch (SlickException e) {
 			e.printStackTrace();
