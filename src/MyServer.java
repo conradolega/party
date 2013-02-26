@@ -1,4 +1,4 @@
-import java.io.*;
+package src;
 import java.net.*;
 import java.util.ArrayList;
 
@@ -39,6 +39,10 @@ class ClientThread extends Thread {
 		try {
 			while (!quitted) {
 				this.msg = this.conn.getMessage() + " ";
+				if(this.msg.equals("null ")){
+					socket.close();
+					break;
+				}
 				if (this.msg.charAt(0) == '/') {
 					this.command = this.msg.substring(1, this.msg.indexOf(' '));
 					if (this.command.equals("quit")) {
