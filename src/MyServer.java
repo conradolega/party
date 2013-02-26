@@ -90,6 +90,7 @@ public class MyServer {
 	boolean sent = false;
 	String list, name, msg;
 	int connected = 1;
+	
 	public void sendList() {
 		list = "List: ";
 		for (int i = 0; i < clients.size(); i++) {
@@ -139,7 +140,9 @@ public class MyServer {
 				clients.add(new ClientThread(socket, connected, this));
 				sendToAll(clients.get(clients.size() - 1).name + " has connected", true);
 				clients.get(clients.size() - 1).start();
+				clients.get(clients.size() - 1).sendMessage("Number: " + (clients.size() - 1), false);
 				sendList();
+				
 				connected++;
 			}
 		} catch (Exception e) {
