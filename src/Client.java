@@ -9,22 +9,34 @@ import org.newdawn.slick.state.BasicGameState;
 import org.newdawn.slick.state.StateBasedGame;
 
 
-class MsgThread extends Thread {
+class PlayerThread extends Thread {
 	
 	Socket socket;
 	MyConnection conn;
-	String msg;
-	
-	public MsgThread(Socket socket) {
+	String msg, name;
+	int active, drunk, id;
+	float x, y;
+
+	public PlayerThread(Socket socket) {
 		this.socket = socket;
 		this.conn = new MyConnection(socket);
 		this.msg = "connected!";
+		this.active = 0;
 	}
 	
 	public void run() {
 		while (true) {
 			msg = conn.getMessage();
 			System.out.println("Message: " + msg);
+			if (msg.substring(0, 4).equals("List")) {
+				msg = msg.substring(7);
+				for (int i = 0; i < msg.length(); i++) {
+					if (msg.charAt(i) == '\0') active++;
+				}
+			} else if (msg.substring(0, 7).equals("Number")) {
+				id = Integer.parseInt(msg.substring(10));
+			}
+			active = 0;
 		}
 	}
 }
@@ -33,15 +45,17 @@ public class Client extends BasicGameState {
 
 	Socket socket;
 	MyConnection conn;
-	MsgThread thread;
+	PlayerThread thread;
 	String msg;
-	Image ball;
-	float x = 0.00f, y = 0.00f, moveSpeed = 1.00f;
+	Image[] balls = new Image[4];
+	PlayerThread[] players = new PlayerThread[4];
+	float moveSpeed = 1.00f;
+	int id;
 	
 	public Client(int state) {
 		try {
 			socket = new Socket("127.0.0.1", 8888);
-			thread = new MsgThread(socket);
+			thread = new PlayerThread(socket);
 			thread.start();
 		} catch (Exception e) {
 			
@@ -51,21 +65,21 @@ public class Client extends BasicGameState {
 	@Override
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
-		ball = new Image("img/ball.png");
+		for (int i = 0; i < 4; i++) balls[i] = new Image("img/ball.png");
 	}
 
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
 		g.drawString(thread.msg, 20, 20);
-		g.drawImage(ball, x, y);
+		for (int i = 0; i < thread.active; i++) g.drawImage(balls[i], players[i].x, players[i].y);
 	}
 
 	@Override
 	public void update(GameContainer gc, StateBasedGame sbg, int delta)
 			throws SlickException {
 		Input input = gc.getInput();
-		
+		/*
 		if (input.isKeyDown(Input.KEY_DOWN)) {
 			y += moveSpeed * delta;
 		}
@@ -78,6 +92,7 @@ public class Client extends BasicGameState {
 		if (input.isKeyDown(Input.KEY_UP)) {
 			y -= moveSpeed * delta;
 		}
+		*/
 	}
 
 	@Override
