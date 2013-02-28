@@ -16,15 +16,13 @@ public class Game extends StateBasedGame {
 		this.addState(new Menu(MENU));
 		this.addState(new Play(PLAY));
 		this.addState(new Client(CLIENT));
+		this.enterState(CLIENT);
 	}
 
 	@Override
 	public void initStatesList(GameContainer gc) throws SlickException {
-		
-		this.getState(MENU).init(gc, this);
-		this.getState(PLAY).init(gc, this);
-		this.getState(CLIENT).init(gc, this);
-		this.enterState(CLIENT);
+		// Tinanggal ko kasi mali si Bucky at natatawag ng dalawang beses
+		// yung Client.init() kaya laging 0 ang Client.active
 	}
 
 	public static void main(String[] args) {

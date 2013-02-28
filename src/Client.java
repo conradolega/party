@@ -64,12 +64,9 @@ class PlayerThread extends Thread {
 		while (true) {
 			msg = conn.getMessage();
 			System.out.println("Message: " + msg);
-			if (msg.substring(0, 4).equals("List")) {
-				msg = msg.substring(7);
-				active = 0;
-				for (int i = 0; i < msg.length(); i++) {
-					if (msg.charAt(i) == '\0') active++;
-				}
+
+			if (msg.substring(0, 7).equals("Active ")) {
+				active = Integer.parseInt(msg.substring(7));
 			} 
 			else if (msg.substring(0, 7).equals("Number:")) {
 				id = Integer.parseInt(msg.substring(8));
@@ -77,6 +74,7 @@ class PlayerThread extends Thread {
 			//PROTOCOL: MOVE <PLAYERID> <X> <Y>
 			//example: MOVE 2 356 45
 			else if(msg.substring(0,4).equals("MOVE")){
+				System.out.println("Moveing " + msg.charAt(5));
 				int player_id = msg.charAt(5) - 48;
 				float x,y;
 				String temp_x = "", temp_msg = msg.substring(7);
@@ -87,7 +85,6 @@ class PlayerThread extends Thread {
 				players[player_id].setX(x);
 				players[player_id].setY(y);
 			}
-			//active = 0;
 		}
 	}
 }
@@ -98,7 +95,7 @@ public class Client extends BasicGameState {
 	PlayerThread thread;
 	Player[] players = new Player[4];
 	float moveSpeed = 1.00f;
-	int id; //remove 0!
+	int id, active; //remove 0!
 	
 	public Client(int state) {
 		try {
@@ -108,21 +105,23 @@ public class Client extends BasicGameState {
 
 	@Override
 	public void init(GameContainer gc, StateBasedGame sbg)
-			throws SlickException {
+			throws SlickException {;
 		for (int i = 0; i < 4; i++) players[i] = new Player();
 		thread = new PlayerThread(socket, players);
 		thread.start();
-		id = thread.id;
+		active = 1;
 	}
 
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
-		g.drawString(thread.msg, 20, 20);
+		g.drawString(" " + thread.msg, 20, 20);
+		g.drawString("ID: " + id, 700, 20);
 		//value of thread.active?
 		//thread.active = 1;
 		//render all the images of the players
-		for (int i = 0; i < thread.active; i++){
+		//System.out.println("Thread.active: " + thread.active);
+		for (int i = 0; i < active; i++){
 			g.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
 		}
 	}
@@ -130,31 +129,27 @@ public class Client extends BasicGameState {
 	@Override
 	public void update(GameContainer gc, StateBasedGame sbg, int delta)
 			throws SlickException {
+		active = thread.active;
+		id = thread.id;
 		float past_x = players[id].getX();
 		float past_y = players[id].getY();
 		Input input = gc.getInput();
-		
 		if (input.isKeyDown(Input.KEY_DOWN)) {
 			players[id].setY(players[id].getY() + moveSpeed * delta);
-//			y += moveSpeed * delta;
 		}
 		if (input.isKeyDown(Input.KEY_RIGHT)) {
 			players[id].setX(players[id].getX() + moveSpeed * delta);
-//			x += moveSpeed * delta;
 		}
 		if (input.isKeyDown(Input.KEY_LEFT)) {
 			players[id].setX(players[id].getX() - moveSpeed * delta);
-//			x -= moveSpeed * delta;
 		}
 		if (input.isKeyDown(Input.KEY_UP)) {
 			players[id].setY(players[id].getY() - moveSpeed * delta);
-//			y -= moveSpeed * delta;
 		}
 		
-		//TODO get id from server
 		//check for changes in coordinates then broadcast the MOVE message
 		if(past_x!=players[id].getX() || past_y!=players[id].getY()){
-			thread.conn.sendMessage("MOVE "+id+" "+players[id].getX()+" "+players[id].getY());
+			thread.conn.sendMessage("MOVE "+players[id].getX()+" "+players[id].getY());
 		}
 	}
 

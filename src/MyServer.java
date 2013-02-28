@@ -4,23 +4,23 @@ import java.util.ArrayList;
 class ClientThread extends Thread {
 
 	Socket socket;
-	String msg, name, status, command, oldname;
+	String msg, status, command, oldname;
 	MyConnection conn;
 	MyServer server;
 	boolean quitted;
+	int name;
 
 	public ClientThread(Socket socket, int number, MyServer server) {
 		this.socket = socket;
 		this.conn = new MyConnection(socket);
-		this.name = "Client" + number;
+		this.name = number;
 		this.server = server;
 		this.status = "";
 		this.quitted = false;
 	}
 	
-	public String getID() {
-		if (!this.status.equals("")) return this.name + " - " + this.status;
-		else return this.name;
+	public int getID() {
+		return this.name;
 	}
 	
 	public void sendMessage(String s, boolean serverMessage) {
@@ -50,30 +50,12 @@ class ClientThread extends Thread {
 						this.server.quit(this.name);
 						this.sendMessage("QUIT", false);
 					}
-					else if (this.command.equals("whisper")) {
-						this.msg = msg.substring(9).trim();
-						if (!this.server.whisper(msg, this.name)) this.sendMessage("This user does not exist.", true);
-					}
-					else if (this.command.equals("changestatus")) {
-						this.status = this.msg.substring(14).trim();
-						this.server.sendToAll(this.name + " has changed status to \"" + this.status + "\"", true);
-						this.server.sendList();
-					}
-					else if (this.command.equals("changename")) {
-						this.oldname = this.name;
-						this.name = this.msg.substring(12).trim();
-						if (this.name.indexOf(' ') < this.name.length() && this.name.indexOf(' ') > -1) {
-							this.name = this.oldname;
-							this.sendMessage("Usernames should only consist of one word", true);
-						}
-						else {
-							this.server.sendToAll(this.oldname + " has changed name to " + this.name, true);
-							this.server.sendList();
-						}
-					}
 					else {
 						this.sendMessage("Invalid command " + this.msg, true);
 					}
+				}
+				else if (this.msg.substring(0, 4).equals("MOVE")) {
+					this.server.sendToAll(this.msg.substring(0, 4) + " " + this.name + this.msg.substring(4), false);
 				}
 				else this.server.sendToAll(this.msg, false);
 			}
@@ -88,14 +70,10 @@ public class MyServer {
 	ArrayList<ClientThread> clients = new ArrayList<ClientThread>();
 	boolean sent = false;
 	String list, name, msg;
-	int connected = 1;
+	int connected = 0;
 	
 	public void sendList() {
-		list = "List: ";
-		for (int i = 0; i < clients.size(); i++) {
-			list += "\0" + clients.get(i).getID();
-		}
-		sendToAll(list, false);	
+		sendToAll("Active " + clients.size(), false);
 	}
 	
 	public void sendToAll(String s, boolean serverMessage) {
@@ -103,23 +81,10 @@ public class MyServer {
 			clients.get(i).sendMessage(s, serverMessage);
 		}
 	}
-
-	public boolean whisper(String s, String sender) {
-		boolean whispered = false;
-		name = s.substring(0, s.indexOf(' '));
-		msg = s.substring(s.indexOf(' ')).trim();
-		for (int i = 0; i < clients.size(); i++) {
-			if (clients.get(i).name.equals(name)) {
-				whispered = true;
-				clients.get(i).sendMessage("[" + sender + " whispers]: " + msg, false);
-			}
-		}
-		return whispered;
-	}
 	
-	public void quit(String name) {
+	public void quit(int name) {
 		for (int i = 0; i < clients.size(); i++) {
-			if (clients.get(i).name.equals(name)) {
+			if (clients.get(i).name == name) {
 				clients.remove(i);
 				i = clients.size();
 			}
