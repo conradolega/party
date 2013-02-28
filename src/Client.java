@@ -1,5 +1,3 @@
-package src;
-
 import java.net.Socket;
 
 import org.newdawn.slick.GameContainer;
