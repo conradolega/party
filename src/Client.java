@@ -5,6 +5,7 @@ import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
+import org.newdawn.slick.geom.Rectangle;
 import org.newdawn.slick.state.BasicGameState;
 import org.newdawn.slick.state.StateBasedGame;
 
@@ -13,14 +14,16 @@ class Player {
 	float x,y;
 	int drunk_level;
 	boolean is_jumping; //physics
+	Rectangle hitbox;
 	Image sprite;
 	
 	public Player() throws SlickException{
-		x = 1.0f;
+		x = 500.0f;
 		y = 1.0f; //set random starting location
 		drunk_level = 0;
 		is_jumping = false;
 		sprite = new Image("img/ball.png");
+		hitbox = new Rectangle(x,y,sprite.getWidth(),sprite.getHeight());
 	}
 	
 	public float getX(){
@@ -33,14 +36,20 @@ class Player {
 	
 	public void setX(float newx){
 		x = newx;
+		hitbox.setX(newx);
 	}
 	
 	public void setY(float newy){
 		y = newy;
+		hitbox.setY(newy);
 	}
 	
 	public Image getImage(){
 		return sprite;
+	}
+	
+	public Rectangle getHitbox(){
+		return hitbox;
 	}
 }
 
@@ -94,8 +103,9 @@ public class Client extends BasicGameState {
 	Socket socket;
 	PlayerThread thread;
 	Player[] players = new Player[4];
-	float moveSpeed = 1.00f;
-	int id, active; //remove 0!
+	Rectangle[] platforms = new Rectangle[3];
+	float moveSpeed = 1.0f; //finer movement
+	int id, active;
 	
 	public Client(int state) {
 		try {
@@ -107,6 +117,9 @@ public class Client extends BasicGameState {
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {;
 		for (int i = 0; i < 4; i++) players[i] = new Player();
+		platforms[0] = new Rectangle(200,100,400,30);
+		platforms[1] = new Rectangle(201,300,400,30);
+		platforms[2] = new Rectangle(201,500,400,30);
 		thread = new PlayerThread(socket, players);
 		thread.start();
 		active = 1;
@@ -124,6 +137,9 @@ public class Client extends BasicGameState {
 		for (int i = 0; i < active; i++){
 			g.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
 		}
+		for (int i = 0; i < 3; i++){
+			g.draw(platforms[i]);
+		}
 	}
 
 	@Override
@@ -133,6 +149,8 @@ public class Client extends BasicGameState {
 		id = thread.id;
 		float past_x = players[id].getX();
 		float past_y = players[id].getY();
+		
+		//set new X and Y only if intersects is false
 		Input input = gc.getInput();
 		if (input.isKeyDown(Input.KEY_DOWN)) {
 			players[id].setY(players[id].getY() + moveSpeed * delta);
@@ -145,6 +163,25 @@ public class Client extends BasicGameState {
 		}
 		if (input.isKeyDown(Input.KEY_UP)) {
 			players[id].setY(players[id].getY() - moveSpeed * delta);
+		}
+
+		//check for collision for the player and platforms
+		for(int i=0; i<3; i++){
+			if(platforms[i].intersects(players[id].getHitbox())){
+				if (input.isKeyDown(Input.KEY_DOWN)) {
+					players[id].setY(platforms[i].getY()-1-players[id].getHitbox().getHeight());
+				}
+				if (input.isKeyDown(Input.KEY_RIGHT)) {
+					players[id].setX(platforms[i].getX()-1-players[id].getHitbox().getWidth());
+				}
+				if (input.isKeyDown(Input.KEY_LEFT)) {
+					players[id].setX(platforms[i].getX()+platforms[i].getWidth()+1);
+				}
+				if (input.isKeyDown(Input.KEY_UP)) {
+					players[id].setY(platforms[i].getY()+platforms[i].getHeight()+1);
+				}
+				break;
+			}
 		}
 		
 		//check for changes in coordinates then broadcast the MOVE message
