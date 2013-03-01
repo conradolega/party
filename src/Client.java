@@ -117,9 +117,9 @@ public class Client extends BasicGameState {
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {;
 		for (int i = 0; i < 4; i++) players[i] = new Player();
-		platforms[0] = new Rectangle(200,100,400,30);
-		platforms[1] = new Rectangle(201,300,400,30);
-		platforms[2] = new Rectangle(201,500,400,30);
+		platforms[0] = new Rectangle(200,100,300,40);
+		platforms[1] = new Rectangle(200,300,300,40);
+		platforms[2] = new Rectangle(200,500,300,40);
 		thread = new PlayerThread(socket, players);
 		thread.start();
 		active = 1;
@@ -168,16 +168,16 @@ public class Client extends BasicGameState {
 		//check for collision for the player and platforms
 		for(int i=0; i<3; i++){
 			if(platforms[i].intersects(players[id].getHitbox())){
-				if (input.isKeyDown(Input.KEY_DOWN)) {
+				if (past_y<platforms[i].getY()) {
 					players[id].setY(platforms[i].getY()-1-players[id].getHitbox().getHeight());
 				}
-				if (input.isKeyDown(Input.KEY_RIGHT)) {
+				if (past_x<platforms[i].getX()) {
 					players[id].setX(platforms[i].getX()-1-players[id].getHitbox().getWidth());
 				}
-				if (input.isKeyDown(Input.KEY_LEFT)) {
+				if (past_x>(platforms[i].getX()+platforms[i].getWidth())) {
 					players[id].setX(platforms[i].getX()+platforms[i].getWidth()+1);
 				}
-				if (input.isKeyDown(Input.KEY_UP)) {
+				if (past_y>(platforms[i].getY()+platforms[i].getHeight())) {
 					players[id].setY(platforms[i].getY()+platforms[i].getHeight()+1);
 				}
 				break;
