@@ -165,6 +165,7 @@ public class Client extends BasicGameState {
 			players[id].setY(players[id].getY() - moveSpeed * delta);
 		}
 
+		
 		//check for collision for the player and platforms
 		for(int i=0; i<3; i++){
 			if(platforms[i].intersects(players[id].getHitbox())){
@@ -180,7 +181,26 @@ public class Client extends BasicGameState {
 				if (past_y>(platforms[i].getY()+platforms[i].getHeight())) {
 					players[id].setY(platforms[i].getY()+platforms[i].getHeight()+1);
 				}
-				break;
+			}
+		}
+		
+		// check for collision of players
+		for (int i = 0; i < 4; i++) {
+			if (i != id) {
+				if (players[i].getHitbox().intersects(players[id].getHitbox())) {
+					if (past_x < players[i].getX()) {
+						players[id].setX(players[i].getX() - 1 - players[id].getHitbox().getWidth());
+					}
+					if (past_x > players[i].getX()) {
+						players[id].setX(players[i].getX() + players[i].getHitbox().getWidth() + 1);
+					}
+					if (past_y < players[i].getY()) {
+						players[id].setY(players[i].getY() - 1 - players[id].getHitbox().getWidth());
+					}
+					if (past_y < players[i].getY()) {
+						players[id].setY(players[i].getY() + players[i].getHitbox().getHeight() + 1);
+					}
+				}
 			}
 		}
 		
