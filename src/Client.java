@@ -14,13 +14,14 @@ class Player {
 	
 	private static final float TERMINAL_VELOCITY = 5000.0f;
 	float x,y;
-	int drunk_level;
-	boolean is_jumping;
-	Rectangle hitbox;
-	Image sprite;
 	float speed_x;
 	float speed_y;
 	float acc_y; //acceleration along y
+	int drunk_level;
+	int direction; //1: right, -1: left
+	boolean is_jumping;
+	Rectangle hitbox, r_pushbox, l_pushbox;
+	Image sprite;
 	
 	public Player() throws SlickException{
 		//Starting position
@@ -31,9 +32,13 @@ class Player {
 		speed_y = 0;
 		acc_y = 0;
 		drunk_level = 0;
+		direction = 1;
 		is_jumping = false;
 		sprite = new Image("img/ball.png");
 		hitbox = new Rectangle(x,y,sprite.getWidth(),sprite.getHeight());
+		
+		r_pushbox = new Rectangle(x-hitbox.getWidth()*0.5f, y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f);
+		l_pushbox = new Rectangle(x+hitbox.getWidth(), y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f); 
 	}
 	
 	public float getX(){
@@ -47,11 +52,15 @@ class Player {
 	public void setX(float newx){
 		x = newx;
 		hitbox.setX(newx);
+		r_pushbox.setX(x-hitbox.getWidth()*0.5f);
+		l_pushbox.setX(x+hitbox.getWidth());
 	}
 	
 	public void setY(float newy){
 		y = newy;
 		hitbox.setY(newy);
+		r_pushbox.setY(y+hitbox.getHeight()*0.25f);
+		l_pushbox.setY(y+hitbox.getHeight()*0.25f);
 	}
 	
 	public Image getImage(){
@@ -60,6 +69,14 @@ class Player {
 	
 	public Rectangle getHitbox(){
 		return hitbox;
+	}
+	
+	public Rectangle getRightPushBox(){
+		return r_pushbox;
+	}
+	
+	public Rectangle getLeftPushBox(){
+		return l_pushbox;
 	}
 	
 	public float getSpeedX(){
@@ -182,6 +199,8 @@ public class Client extends BasicGameState {
 		for (int i = 0; i < active; i++){
 			g.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
 			g.draw(players[i].getHitbox());
+			g.draw(players[i].getRightPushBox());
+			g.draw(players[i].getLeftPushBox());
 		}
 		for (int i = 0; i < 3; i++){
 			g.fill(platforms[i]);
@@ -237,15 +256,15 @@ public class Client extends BasicGameState {
 					boolean flag = true;
 					
 					if (past_x < players[i].getX()) {
-						players[id].setX(players[i].getX() - 1 - players[id].getHitbox().getWidth());
+						players[id].setX(players[i].getX() - players[id].getHitbox().getWidth());
 						flag = false;
 					}
 					if (past_x > (players[i].getX() + players[i].getHitbox().getWidth())) {
-						players[id].setX(players[i].getX() + players[i].getHitbox().getWidth() + 1);
+						players[id].setX(players[i].getX() + players[i].getHitbox().getWidth());
 						flag = false;
 					}
 					if (past_y < players[i].getY() && flag) {
-						players[id].setY(players[i].getY() - 1 - players[id].getHitbox().getHeight());
+						players[id].setY(players[i].getY() - players[id].getHitbox().getHeight());
 						
 						//set jumping to false, speed to 0, acceleration along y to 0 when touching a player below
 						players[id].setJumping(false);
@@ -253,7 +272,7 @@ public class Client extends BasicGameState {
 						players[id].setAccelerationY(0);
 					}
 					if (past_y > (players[i].getY() + players[i].getHitbox().getHeight())) {
-						players[id].setY(players[i].getY() + players[i].getHitbox().getHeight() + 1);
+						players[id].setY(players[i].getY() + players[i].getHitbox().getHeight());
 					}
 				}
 			}
@@ -264,7 +283,7 @@ public class Client extends BasicGameState {
 			if(platforms[i].intersects(players[id].getHitbox())){
 				
 				if (past_y<platforms[i].getY()) {
-					players[id].setY(platforms[i].getY()-1-players[id].getHitbox().getHeight());
+					players[id].setY(platforms[i].getY() - players[id].getHitbox().getHeight());
 					
 					//set jumping to false, speed to 0, acceleration along y to 0 when touching the ground
 					players[id].setJumping(false);
@@ -272,13 +291,13 @@ public class Client extends BasicGameState {
 					players[id].setAccelerationY(0);
 				}
 				else if (past_x<platforms[i].getX()) {
-					players[id].setX(platforms[i].getX()-1-players[id].getHitbox().getWidth());
+					players[id].setX(platforms[i].getX() - players[id].getHitbox().getWidth());
 				}
 				else if (past_x>(platforms[i].getX()+platforms[i].getWidth())) {
-					players[id].setX(platforms[i].getX()+platforms[i].getWidth()+1);
+					players[id].setX(platforms[i].getX() + platforms[i].getWidth());
 				}
 				if (past_y>(platforms[i].getY()+platforms[i].getHeight())) {
-					players[id].setY(platforms[i].getY()+platforms[i].getHeight()+1);
+					players[id].setY(platforms[i].getY() + platforms[i].getHeight());
 				}
 			}
 		}
