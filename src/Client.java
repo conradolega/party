@@ -32,13 +32,13 @@ class Player {
 		speed_y = 0;
 		acc_y = 0;
 		drunk_level = 0;
-		direction = 1;
+		direction = 0;
 		is_jumping = false;
 		sprite = new Image("img/ball.png");
 		hitbox = new Rectangle(x,y,sprite.getWidth(),sprite.getHeight());
 		
-		r_pushbox = new Rectangle(x-hitbox.getWidth()*0.5f, y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f);
-		l_pushbox = new Rectangle(x+hitbox.getWidth(), y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f); 
+		l_pushbox = new Rectangle(x-hitbox.getWidth()*0.5f, y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f);
+		r_pushbox = new Rectangle(x+hitbox.getWidth(), y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f); 
 	}
 	
 	public float getX(){
@@ -52,11 +52,14 @@ class Player {
 	public void setX(float newx){
 		x = newx;
 		hitbox.setX(newx);
-		r_pushbox.setX(x-hitbox.getWidth()*0.5f);
-		l_pushbox.setX(x+hitbox.getWidth());
+		l_pushbox.setX(x-hitbox.getWidth()*0.5f);
+		r_pushbox.setX(x+hitbox.getWidth());
 	}
 	
 	public void setY(float newy){
+		//limit maximum y
+		if(newy>600) newy = 600;
+		
 		y = newy;
 		hitbox.setY(newy);
 		r_pushbox.setY(y+hitbox.getHeight()*0.25f);
@@ -112,6 +115,14 @@ class Player {
 	public void setAccelerationY(float newAccY){
 		acc_y = newAccY;
 	}
+	
+	public void setDirection(int NEW_DIRECTIONS){
+		direction = NEW_DIRECTIONS;
+	}
+	
+	public int getDirection(){
+		return direction;
+	}
 }
 
 class PlayerThread extends Thread {
@@ -155,6 +166,30 @@ class PlayerThread extends Thread {
 				players[player_id].setX(x);
 				players[player_id].setY(y);
 			}
+			//PROTOCOL: PUSH <PLAYERID> <PLAYER_DIRECTION>
+			//example: PUSH 1 -1
+			else if(msg.substring(0,4).equals("PUSH")){
+				System.out.println("PUSHING " + msg.charAt(5));
+				String temp_msg = msg.substring(7);
+				int pusher_id = msg.charAt(5) - 48;
+				int direction = Integer.parseInt(temp_msg.substring(0, temp_msg.indexOf(' ')));
+				
+				int i = id;
+				if(pusher_id != i){
+					System.out.println("pusher_id: " + pusher_id);
+					System.out.println("direction: " + direction);
+//					System.out.println("LEFT: " + (players[id].getHitbox().intersects(players[pusher_id].getLeftPushBox())));
+//					System.out.println("RIGHT: " + (players[id].getHitbox().intersects(players[pusher_id].getRightPushBox())));
+					if((direction == -1 && players[i].getHitbox().intersects(players[pusher_id].getLeftPushBox())) || (direction == 1 && players[i].getHitbox().intersects(players[pusher_id].getRightPushBox()))){
+						float new_speed = direction * 1000f;
+						System.out.println("new_speed: " + new_speed + " i: " + i);
+						players[i].setSpeedX(new_speed);
+						 
+						System.out.println("ASDFASDF");
+//						players[id].setX(players[id].getX() + (direction * 100f));
+					}
+				}
+			}
 		}
 	}
 }
@@ -181,8 +216,8 @@ public class Client extends BasicGameState {
 			throws SlickException {;
 		for (int i = 0; i < 4; i++) players[i] = new Player();
 		platforms[0] = new Rectangle(200,100,300,40);
-		platforms[1] = new Rectangle(200,300,300,40);
-		platforms[2] = new Rectangle(200,500,300,40);
+		platforms[1] = new Rectangle(200,200,300,40);
+		platforms[2] = new Rectangle(200,300,300,40);
 		thread = new PlayerThread(socket, players);
 		thread.start();
 		active = 1;
@@ -221,26 +256,38 @@ public class Client extends BasicGameState {
 		
 		active = thread.active;
 		id = thread.id;
-		players[id].setSpeedX(0);
-//		players[id].setSpeedY(0);
 		
 		Input input = gc.getInput();
 		if (input.isKeyDown(Input.KEY_RIGHT)) {
 			players[id].setSpeedX(500f);
+			players[id].setDirection(1);
 		}
 		if (input.isKeyDown(Input.KEY_LEFT)) {
 			players[id].setSpeedX(-500f);
+			players[id].setDirection(-1);
 		}
 		if (input.isKeyDown(Input.KEY_UP) && !players[id].isJumping()) {
 			players[id].setSpeedY(-500f);
 			players[id].setJumping(true);
 		}
+		if (input.isKeyPressed(Input.KEY_SPACE)){
+			thread.conn.sendMessage("PUSH "+players[id].getDirection());
+		}
 
 		//increment downward acceleration by g if player is on air
 		if(players[id].isJumping()) players[id].setAccelerationY(players[id].getAccelerationY() + g * seconds);
-		
 		//set new speed using the acceleration along y
 		players[id].setSpeedY(players[id].getSpeedY() + players[id].getAccelerationY());
+
+		//set new speed along X because of friction
+		if(players[id].getSpeedX() != 0){
+			if(players[id].getSpeedX()>0){
+				players[id].setSpeedX(players[id].getSpeedX() - 100f);
+			}
+			else{
+				players[id].setSpeedX(players[id].getSpeedX() + 100f);
+			}
+		}
 		
 		//set new x and y using the speed along x and y
 		players[id].setX(players[id].getX() + players[id].getSpeedX() * seconds);
@@ -254,17 +301,17 @@ public class Client extends BasicGameState {
 			if (i != id) {
 				if (players[i].getHitbox().intersects(players[id].getHitbox())) {
 					boolean flag = true;
-					
-					if (past_x < players[i].getX()) {
-						players[id].setX(players[i].getX() - players[id].getHitbox().getWidth());
-						flag = false;
-					}
+
 					if (past_x > (players[i].getX() + players[i].getHitbox().getWidth())) {
-						players[id].setX(players[i].getX() + players[i].getHitbox().getWidth());
+						players[id].setX(players[i].getX() + players[i].getHitbox().getWidth() + 1);
+						flag = false;	
+					}
+					if (past_x < players[i].getX()) {
+						players[id].setX(players[i].getX() - players[id].getHitbox().getWidth() - 1);
 						flag = false;
 					}
 					if (past_y < players[i].getY() && flag) {
-						players[id].setY(players[i].getY() - players[id].getHitbox().getHeight());
+						players[id].setY(players[i].getY() - players[id].getHitbox().getHeight() - 1);
 						
 						//set jumping to false, speed to 0, acceleration along y to 0 when touching a player below
 						players[id].setJumping(false);
@@ -272,7 +319,8 @@ public class Client extends BasicGameState {
 						players[id].setAccelerationY(0);
 					}
 					if (past_y > (players[i].getY() + players[i].getHitbox().getHeight())) {
-						players[id].setY(players[i].getY() + players[i].getHitbox().getHeight());
+						players[id].setY(players[i].getY() + players[i].getHitbox().getHeight() + 1);
+						players[id].setSpeedY(0);
 					}
 				}
 			}
@@ -297,7 +345,8 @@ public class Client extends BasicGameState {
 					players[id].setX(platforms[i].getX() + platforms[i].getWidth());
 				}
 				if (past_y>(platforms[i].getY()+platforms[i].getHeight())) {
-					players[id].setY(platforms[i].getY() + platforms[i].getHeight());
+					players[id].setY(platforms[i].getY() + platforms[i].getHeight() + 1);
+					players[id].setSpeedY(0);
 				}
 			}
 		}

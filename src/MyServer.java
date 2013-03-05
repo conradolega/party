@@ -57,6 +57,9 @@ class ClientThread extends Thread {
 				else if (this.msg.substring(0, 4).equals("MOVE")) {
 					this.server.sendToAll(this.msg.substring(0, 4) + " " + this.name + this.msg.substring(4), false);
 				}
+				else if (this.msg.substring(0, 4).equals("PUSH")){
+					this.server.sendToAll(this.msg.substring(0, 4) + " " + this.name + this.msg.substring(4), false);
+				}
 				else this.server.sendToAll(this.msg, false);
 			}
 		} catch (Exception e) {
