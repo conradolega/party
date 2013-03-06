@@ -1,5 +1,8 @@
-import java.net.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 class ClientThread extends Thread {
 
@@ -74,6 +77,8 @@ public class MyServer {
 	boolean sent = false;
 	String list, name, msg;
 	int connected = 0;
+	Timer timer;
+	TimerTask ttask;
 	
 	public void sendList() {
 		sendToAll("Active " + clients.size(), false);
@@ -98,6 +103,14 @@ public class MyServer {
 	
 	public MyServer() {
 		try {
+			
+			timer = new Timer();
+			ttask = new TimerTask() {
+				public void run() {
+					sendToAll("ALCOHOL", false);
+				}
+			};
+			timer.schedule(ttask, 10000, 10000);
 			System.out.println("Server: Starting server...");
 			ServerSocket ssocket = new ServerSocket(8888);
 			System.out.println("Server: Waiting for connections...");

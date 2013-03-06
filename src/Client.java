@@ -1,5 +1,5 @@
 import java.net.Socket;
-
+import java.util.Random;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
@@ -17,7 +17,6 @@ class Player {
 	float speed_x;
 	float speed_y;
 	float acc_y; //acceleration along y
-	int drunk_level;
 	int direction; //1: right, -1: left
 	boolean is_jumping;
 	Rectangle hitbox, r_pushbox, l_pushbox;
@@ -31,7 +30,7 @@ class Player {
 		speed_x = 0;
 		speed_y = 0;
 		acc_y = 0;
-		drunk_level = 0;
+		
 		direction = 0;
 		is_jumping = false;
 		sprite = new Image("img/ball.png");
@@ -129,14 +128,16 @@ class PlayerThread extends Thread {
 	Socket socket;
 	MyConnection conn;
 	String msg;
-	int active, id; // active = number of connected players
+	int active, id, drunk_level; // active = number of connected players
 	Player[] players; //reference to the players in the Client class
+	
 	
 	public PlayerThread(Socket socket, Player[] players) {
 		this.socket = socket;
 		this.conn = new MyConnection(socket);
 		this.msg = "connected!";
 		this.active = 0;
+		this.drunk_level = 0;
 		this.players = players;
 	}
 	
@@ -190,6 +191,10 @@ class PlayerThread extends Thread {
 					}
 				}
 			}
+			//PROTOCOL: ALCOHOL
+			else if (msg.equals("ALCOHOL")) {
+				drunk_level += 1;
+			}
 		}
 	}
 }
@@ -204,6 +209,8 @@ public class Client extends BasicGameState {
 	Player[] players = new Player[4];
 	Rectangle[] platforms = new Rectangle[3];
 	int id, active;
+	Random random;
+	float randX, randY;
 	
 	public Client(int state) {
 		try {
@@ -221,14 +228,19 @@ public class Client extends BasicGameState {
 		thread = new PlayerThread(socket, players);
 		thread.start();
 		active = 1;
+		random = new Random();
+		randX = 0.0f;
+		randY = 0.0f;
 	}
 
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
+		g.translate(randX, randY);
+		
 		g.drawString(" " + thread.msg, 20, 20);
 		g.drawString("ID: " + id, 700, 20);
-		
+		g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
 		//render all the images of the players
 		//System.out.println("Thread.active: " + thread.active);
 		for (int i = 0; i < active; i++){
@@ -241,6 +253,7 @@ public class Client extends BasicGameState {
 			g.fill(platforms[i]);
 			g.draw(platforms[i]);
 		}
+		g.translate(-randX, -randY);
 	}
 
 	@Override
@@ -256,18 +269,20 @@ public class Client extends BasicGameState {
 		
 		active = thread.active;
 		id = thread.id;
+		randX = thread.drunk_level * (random.nextInt(5) + 1);
+		randY = thread.drunk_level * (random.nextInt(5) + 1);
 		
 		Input input = gc.getInput();
 		if (input.isKeyDown(Input.KEY_RIGHT)) {
-			players[id].setSpeedX(500f);
+			players[id].setSpeedX(500f + randX);
 			players[id].setDirection(1);
 		}
 		if (input.isKeyDown(Input.KEY_LEFT)) {
-			players[id].setSpeedX(-500f);
+			players[id].setSpeedX(-500f + randX);
 			players[id].setDirection(-1);
 		}
 		if (input.isKeyDown(Input.KEY_UP) && !players[id].isJumping()) {
-			players[id].setSpeedY(-500f);
+			players[id].setSpeedY(-500f + randY);
 			players[id].setJumping(true);
 		}
 		if (input.isKeyPressed(Input.KEY_SPACE)){
@@ -282,10 +297,10 @@ public class Client extends BasicGameState {
 		//set new speed along X because of friction
 		if(players[id].getSpeedX() != 0){
 			if(players[id].getSpeedX()>0){
-				players[id].setSpeedX(players[id].getSpeedX() - 100f);
+				players[id].setSpeedX(players[id].getSpeedX() - 100f - randX);
 			}
 			else{
-				players[id].setSpeedX(players[id].getSpeedX() + 100f);
+				players[id].setSpeedX(players[id].getSpeedX() + 100f + randX);
 			}
 		}
 		
