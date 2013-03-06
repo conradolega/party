@@ -21,8 +21,6 @@ public class Game extends StateBasedGame {
 	
 	@Override
 	public void initStatesList(GameContainer gc) throws SlickException {
-		// Tinanggal ko kasi mali si Bucky at natatawag ng dalawang beses
-		// yung Client.init() kaya laging 0 ang Client.active
 	}
 
 	public static void main(String[] args) {

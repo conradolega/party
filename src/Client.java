@@ -245,6 +245,9 @@ public class Client extends BasicGameState {
 		vImage = Image.createOffscreenImage(800, 600);
 		vGraphics = vImage.getGraphics();
 		
+		// Shaders as well as their application are from
+		// the Slick2d tutorials
+		
 		String h = "shaders/hvs.frag";
 		String v = "shaders/vvs.frag";
 		String vert = "shaders/hvs.vert";
@@ -255,66 +258,70 @@ public class Client extends BasicGameState {
 		hShader.bind();
 		hShader.setUniform1i("tex0", 0); //texture 0
 		hShader.setUniform1f("resolution", 800); //width of img
-		hShader.setUniform1f("radius", 0.5f);
+		hShader.setUniform1f("radius", 0f);
 		
 		vShader.bind();
 		vShader.setUniform1i("tex0", 0); //texture 0
 		vShader.setUniform1f("resolution", 600); //height of img
-		vShader.setUniform1f("radius", 0.5f);
+		vShader.setUniform1f("radius", 0f);
 		
 		ShaderProgram.unbindAll();
-		
-
-		
 	}
 
+	// While not drunk, do only this; otherwise do this and apply shader
+	public void prerender(GameContainer gc, StateBasedGame sbg, Graphics g)
+		throws SlickException {
+		for (int i = 0; i < active; i++){
+			g.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
+			g.draw(players[i].getHitbox());
+			g.draw(players[i].getRightPushBox());
+			g.draw(players[i].getLeftPushBox());
+		}
+		for (int i = 0; i < 3; i++){
+			g.fill(platforms[i]);
+			g.draw(platforms[i]);
+		}
+	}
+	
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
+		g.translate(randX, randY);
 		
-		g.clear();
-		
+		if (thread.drunk_level > 0) {
+			Graphics.setCurrent(hGraphics);
+			hGraphics.clear();
+			
+			hGraphics.flush();
+			
+			prerender(gc, sbg, hGraphics);
+			
+			hShader.bind();
+			hShader.setUniform1f("radius", 0.1f * thread.drunk_level);
+			
+			Graphics.setCurrent(vGraphics);
+			vGraphics.clear();
+			vGraphics.drawImage(hImage, 0f, 0f);
+			
+			vGraphics.flush();
+			hShader.unbind();
+			
+			vShader.bind();
+			vShader.setUniform1f("radius", 0.1f * thread.drunk_level);
+			
+			Graphics.setCurrent(g);
+			g.drawImage(vImage, 0f, 0f);
+			
+			ShaderProgram.unbindAll();
+		}
+		else {
+			prerender(gc, sbg, g);	
+		}
 		// Draw strings last; draw image first
 		g.drawString(" " + thread.msg, 20, 20);
 		g.drawString("ID: " + id, 700, 20);
 		g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
-		g.translate(randX, randY);
-
-		Graphics.setCurrent(hGraphics);
-		hGraphics.clear();
 		
-		for (int i = 0; i < active; i++){
-			hGraphics.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
-			hGraphics.draw(players[i].getHitbox());
-			hGraphics.draw(players[i].getRightPushBox());
-			hGraphics.draw(players[i].getLeftPushBox());
-		}
-		for (int i = 0; i < 3; i++){
-			hGraphics.fill(platforms[i]);
-			hGraphics.draw(platforms[i]);
-		}
-		
-		
-		hGraphics.flush();
-		
-		hShader.bind();
-		//hShader.setUniform1f("radius", 1.2f);
-		
-		Graphics.setCurrent(vGraphics);
-		vGraphics.clear();
-		vGraphics.drawImage(hImage, 0f, 0f);
-		
-		vGraphics.flush();
-		hShader.unbind();
-		
-		vShader.bind();
-		//vShader.setUniform1f("radius", 1.2f);
-		
-		Graphics.setCurrent(g);
-		g.drawImage(vImage, 0f, 0f);
-		
-		ShaderProgram.unbindAll();
-
 		g.translate(-randX, -randY);
 	}
 
@@ -331,8 +338,10 @@ public class Client extends BasicGameState {
 		
 		active = thread.active;
 		id = thread.id;
-		randX = thread.drunk_level * (random.nextInt(2) + 1);
-		randY = thread.drunk_level * (random.nextInt(5) + 1);
+		if (thread.drunk_level >= 5) {
+			randX = (thread.drunk_level - 4) * (random.nextInt(2) + 1);
+			randY = (thread.drunk_level - 4)* (random.nextInt(5) + 1);
+		}
 		
 		Input input = gc.getInput();
 		if (input.isKeyDown(Input.KEY_RIGHT)) {
