@@ -1,11 +1,14 @@
 import java.net.Socket;
 import java.util.Random;
+
+import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.geom.Rectangle;
+import org.newdawn.slick.opengl.shader.ShaderProgram;
 import org.newdawn.slick.state.BasicGameState;
 import org.newdawn.slick.state.StateBasedGame;
 
@@ -211,6 +214,9 @@ public class Client extends BasicGameState {
 	int id, active;
 	Random random;
 	float randX, randY;
+	ShaderProgram hShader, vShader;
+	Image hImage, vImage;
+	Graphics hGraphics, vGraphics;
 	
 	public Client(int state) {
 		try {
@@ -220,7 +226,9 @@ public class Client extends BasicGameState {
 
 	@Override
 	public void init(GameContainer gc, StateBasedGame sbg)
-			throws SlickException {;
+			throws SlickException {
+		
+		
 		for (int i = 0; i < 4; i++) players[i] = new Player();
 		platforms[0] = new Rectangle(200,100,300,40);
 		platforms[1] = new Rectangle(200,200,300,40);
@@ -231,28 +239,82 @@ public class Client extends BasicGameState {
 		random = new Random();
 		randX = 0.0f;
 		randY = 0.0f;
+		
+		hImage = Image.createOffscreenImage(800, 600);
+		hGraphics = hImage.getGraphics();
+		vImage = Image.createOffscreenImage(800, 600);
+		vGraphics = vImage.getGraphics();
+		
+		String h = "shaders/hvs.frag";
+		String v = "shaders/vvs.frag";
+		String vert = "shaders/hvs.vert";
+		
+		hShader = ShaderProgram.loadProgram(vert, h);
+		vShader = ShaderProgram.loadProgram(vert, v);
+		
+		hShader.bind();
+		hShader.setUniform1i("tex0", 0); //texture 0
+		hShader.setUniform1f("resolution", 800); //width of img
+		hShader.setUniform1f("radius", 0.5f);
+		
+		vShader.bind();
+		vShader.setUniform1i("tex0", 0); //texture 0
+		vShader.setUniform1f("resolution", 600); //height of img
+		vShader.setUniform1f("radius", 0.5f);
+		
+		ShaderProgram.unbindAll();
+		
+
+		
 	}
 
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
-		g.translate(randX, randY);
 		
+		g.clear();
+		
+		// Draw strings last; draw image first
 		g.drawString(" " + thread.msg, 20, 20);
 		g.drawString("ID: " + id, 700, 20);
 		g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
-		//render all the images of the players
-		//System.out.println("Thread.active: " + thread.active);
+		g.translate(randX, randY);
+
+		Graphics.setCurrent(hGraphics);
+		hGraphics.clear();
+		
 		for (int i = 0; i < active; i++){
-			g.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
-			g.draw(players[i].getHitbox());
-			g.draw(players[i].getRightPushBox());
-			g.draw(players[i].getLeftPushBox());
+			hGraphics.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
+			hGraphics.draw(players[i].getHitbox());
+			hGraphics.draw(players[i].getRightPushBox());
+			hGraphics.draw(players[i].getLeftPushBox());
 		}
 		for (int i = 0; i < 3; i++){
-			g.fill(platforms[i]);
-			g.draw(platforms[i]);
+			hGraphics.fill(platforms[i]);
+			hGraphics.draw(platforms[i]);
 		}
+		
+		
+		hGraphics.flush();
+		
+		hShader.bind();
+		//hShader.setUniform1f("radius", 1.2f);
+		
+		Graphics.setCurrent(vGraphics);
+		vGraphics.clear();
+		vGraphics.drawImage(hImage, 0f, 0f);
+		
+		vGraphics.flush();
+		hShader.unbind();
+		
+		vShader.bind();
+		//vShader.setUniform1f("radius", 1.2f);
+		
+		Graphics.setCurrent(g);
+		g.drawImage(vImage, 0f, 0f);
+		
+		ShaderProgram.unbindAll();
+
 		g.translate(-randX, -randY);
 	}
 
@@ -269,7 +331,7 @@ public class Client extends BasicGameState {
 		
 		active = thread.active;
 		id = thread.id;
-		randX = thread.drunk_level * (random.nextInt(5) + 1);
+		randX = thread.drunk_level * (random.nextInt(2) + 1);
 		randY = thread.drunk_level * (random.nextInt(5) + 1);
 		
 		Input input = gc.getInput();
