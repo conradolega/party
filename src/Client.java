@@ -180,17 +180,11 @@ class PlayerThread extends Thread {
 				
 				int i = id;
 				if(pusher_id != i){
-					System.out.println("pusher_id: " + pusher_id);
-					System.out.println("direction: " + direction);
-//					System.out.println("LEFT: " + (players[id].getHitbox().intersects(players[pusher_id].getLeftPushBox())));
-//					System.out.println("RIGHT: " + (players[id].getHitbox().intersects(players[pusher_id].getRightPushBox())));
+					System.out.println("pusher_id: " + pusher_id + " direction: " + direction);
 					if((direction == -1 && players[i].getHitbox().intersects(players[pusher_id].getLeftPushBox())) || (direction == 1 && players[i].getHitbox().intersects(players[pusher_id].getRightPushBox()))){
 						float new_speed = direction * 1000f;
 						System.out.println("new_speed: " + new_speed + " i: " + i);
 						players[i].setSpeedX(new_speed);
-						 
-						System.out.println("ASDFASDF");
-//						players[id].setX(players[id].getX() + (direction * 100f));
 					}
 				}
 			}
@@ -204,13 +198,13 @@ class PlayerThread extends Thread {
 
 public class Client extends BasicGameState {
 
-	//GRAVITY
-	private static final float g = 300f;
+	private static final float g = 300f; //GRAVITY
+	private static final int NUM_OF_PLATFORMS = 9;
 	
 	Socket socket;
 	PlayerThread thread;
 	Player[] players = new Player[4];
-	Rectangle[] platforms = new Rectangle[3];
+	Rectangle[] platforms = new Rectangle[NUM_OF_PLATFORMS];
 	int id, active, t;
 	Random random;
 	float randX, randY, sway;
@@ -230,9 +224,17 @@ public class Client extends BasicGameState {
 		
 		
 		for (int i = 0; i < 4; i++) players[i] = new Player();
-		platforms[0] = new Rectangle(200,100,300,40);
-		platforms[1] = new Rectangle(200,200,300,40);
-		platforms[2] = new Rectangle(200,300,300,40);
+		platforms[0] = new Rectangle(300,100,200,10);
+		platforms[1] = new Rectangle(100,180,200,10);
+		platforms[2] = new Rectangle(500,180,200,10);
+		platforms[3] = new Rectangle(300,260,200,10);
+		platforms[4] = new Rectangle(100,340,200,10);
+		platforms[5] = new Rectangle(500,340,200,10);
+		platforms[6] = new Rectangle(300,420,200,10);
+		platforms[7] = new Rectangle(100,500,200,10);
+		platforms[8] = new Rectangle(500,500,200,10);
+		
+
 		thread = new PlayerThread(socket, players);
 		thread.start();
 		active = 1;
@@ -278,7 +280,7 @@ public class Client extends BasicGameState {
 			g.draw(players[i].getRightPushBox());
 			g.draw(players[i].getLeftPushBox());
 		}
-		for (int i = 0; i < 3; i++){
+		for (int i = 0; i < NUM_OF_PLATFORMS; i++){
 			g.fill(platforms[i]);
 			g.draw(platforms[i]);
 		}
@@ -346,15 +348,19 @@ public class Client extends BasicGameState {
 		
 		Input input = gc.getInput();
 		if (input.isKeyDown(Input.KEY_RIGHT)) {
-			players[id].setSpeedX(500f + randX);
+			if(players[id].getSpeedX() + 400f + randX <= 600f){
+				players[id].setSpeedX(players[id].getSpeedX() + 400f + randX);
+			}
 			players[id].setDirection(1);
 		}
 		if (input.isKeyDown(Input.KEY_LEFT)) {
-			players[id].setSpeedX(-500f + randX);
+			if(players[id].getSpeedX() - 400f + randX >= -600f){
+				players[id].setSpeedX(players[id].getSpeedX() - 400f + randX);
+			}
 			players[id].setDirection(-1);
 		}
 		if (input.isKeyDown(Input.KEY_UP) && !players[id].isJumping()) {
-			players[id].setSpeedY(-500f + randY);
+			players[id].setSpeedY(-600f + randY);
 			players[id].setJumping(true);
 		}
 		if (input.isKeyPressed(Input.KEY_SPACE)){
@@ -389,12 +395,12 @@ public class Client extends BasicGameState {
 				if (players[i].getHitbox().intersects(players[id].getHitbox())) {
 					boolean flag = true;
 
-					if (past_x > (players[i].getX() + players[i].getHitbox().getWidth())) {
-						players[id].setX(players[i].getX() + players[i].getHitbox().getWidth() + 1);
+					if (past_x > (players[i].getX() + players[i].getHitbox().getWidth()) - 1) {
+						players[id].setX(players[i].getX() + players[i].getHitbox().getWidth());
 						flag = false;	
 					}
 					if (past_x < players[i].getX()) {
-						players[id].setX(players[i].getX() - players[id].getHitbox().getWidth() - 1);
+						players[id].setX(players[i].getX() - players[id].getHitbox().getWidth());
 						flag = false;
 					}
 					if (past_y < players[i].getY() && flag) {
@@ -414,22 +420,25 @@ public class Client extends BasicGameState {
 		}
 		
 		//check for player-to-platform collisions
-		for(int i=0; i<3; i++){
+		for(int i=0; i<NUM_OF_PLATFORMS; i++){
 			if(platforms[i].intersects(players[id].getHitbox())){
-				
-				if (past_y<platforms[i].getY()) {
+				boolean flag = true;
+
+				if (past_x>(platforms[i].getX()+platforms[i].getWidth()) - 1) {
+					players[id].setX(platforms[i].getX() + platforms[i].getWidth());
+					flag = false;
+				}
+				if (past_x<platforms[i].getX()) {
+					players[id].setX(platforms[i].getX() - players[id].getHitbox().getWidth());
+					flag = false;
+				}
+				if (past_y<platforms[i].getY() && flag) {
 					players[id].setY(platforms[i].getY() - players[id].getHitbox().getHeight());
 					
 					//set jumping to false, speed to 0, acceleration along y to 0 when touching the ground
 					players[id].setJumping(false);
 					players[id].setSpeedY(0);
 					players[id].setAccelerationY(0);
-				}
-				else if (past_x<platforms[i].getX()) {
-					players[id].setX(platforms[i].getX() - players[id].getHitbox().getWidth());
-				}
-				else if (past_x>(platforms[i].getX()+platforms[i].getWidth())) {
-					players[id].setX(platforms[i].getX() + platforms[i].getWidth());
 				}
 				if (past_y>(platforms[i].getY()+platforms[i].getHeight())) {
 					players[id].setY(platforms[i].getY() + platforms[i].getHeight() + 1);
