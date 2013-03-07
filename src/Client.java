@@ -1,7 +1,7 @@
 import java.net.Socket;
 import java.util.Random;
+import java.lang.Math;
 
-import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
@@ -211,9 +211,9 @@ public class Client extends BasicGameState {
 	PlayerThread thread;
 	Player[] players = new Player[4];
 	Rectangle[] platforms = new Rectangle[3];
-	int id, active;
+	int id, active, t;
 	Random random;
-	float randX, randY;
+	float randX, randY, sway;
 	ShaderProgram hShader, vShader;
 	Image hImage, vImage;
 	Graphics hGraphics, vGraphics;
@@ -236,6 +236,7 @@ public class Client extends BasicGameState {
 		thread = new PlayerThread(socket, players);
 		thread.start();
 		active = 1;
+		t = 0;
 		random = new Random();
 		randX = 0.0f;
 		randY = 0.0f;
@@ -286,7 +287,7 @@ public class Client extends BasicGameState {
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
-		g.translate(randX, randY);
+		g.translate(sway, 0);
 		
 		if (thread.drunk_level > 0) {
 			Graphics.setCurrent(hGraphics);
@@ -322,7 +323,7 @@ public class Client extends BasicGameState {
 		g.drawString("ID: " + id, 700, 20);
 		g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
 		
-		g.translate(-randX, -randY);
+		g.translate(-sway, 0);
 	}
 
 	@Override
@@ -436,6 +437,10 @@ public class Client extends BasicGameState {
 				}
 			}
 		}
+		
+		//sway
+		t++;
+		sway = thread.drunk_level * (float)Math.cos(0.5f * t);
 		
 		//check for changes in coordinates then broadcast the MOVE message
 		if(past_x!=players[id].getX() || past_y!=players[id].getY()){
