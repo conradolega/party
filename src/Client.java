@@ -207,9 +207,9 @@ public class Client extends BasicGameState {
 	Rectangle[] platforms = new Rectangle[NUM_OF_PLATFORMS];
 	int id, active, t;
 	Random random;
-	float randX, randY, sway;
+	float randX, randY, sway, swayY;
 	ShaderProgram hShader, vShader;
-	Image hImage, vImage;
+	Image hImage, vImage, bg;
 	Graphics hGraphics, vGraphics;
 	
 	public Client(int state) {
@@ -221,7 +221,7 @@ public class Client extends BasicGameState {
 	@Override
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
-		
+		bg = new Image("img/bg.jpg");
 		
 		for (int i = 0; i < 4; i++) players[i] = new Player();
 		platforms[0] = new Rectangle(300,100,200,10);
@@ -274,6 +274,7 @@ public class Client extends BasicGameState {
 	// While not drunk, do only this; otherwise do this and apply shader
 	public void prerender(GameContainer gc, StateBasedGame sbg, Graphics g)
 		throws SlickException {
+		g.drawImage(bg, 0, 0);
 		for (int i = 0; i < active; i++){
 			g.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
 			g.draw(players[i].getHitbox());
@@ -289,7 +290,7 @@ public class Client extends BasicGameState {
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
-		g.translate(sway, 0);
+		g.translate(sway, swayY);
 		
 		if (thread.drunk_level > 0) {
 			Graphics.setCurrent(hGraphics);
@@ -300,7 +301,7 @@ public class Client extends BasicGameState {
 			prerender(gc, sbg, hGraphics);
 			
 			hShader.bind();
-			hShader.setUniform1f("radius", 0.1f * thread.drunk_level);
+			hShader.setUniform1f("radius", 0.3f * thread.drunk_level);
 			
 			Graphics.setCurrent(vGraphics);
 			vGraphics.clear();
@@ -310,7 +311,7 @@ public class Client extends BasicGameState {
 			hShader.unbind();
 			
 			vShader.bind();
-			vShader.setUniform1f("radius", 0.1f * thread.drunk_level);
+			vShader.setUniform1f("radius", 0.3f * thread.drunk_level);
 			
 			Graphics.setCurrent(g);
 			g.drawImage(vImage, 0f, 0f);
@@ -325,7 +326,7 @@ public class Client extends BasicGameState {
 		g.drawString("ID: " + id, 700, 20);
 		g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
 		
-		g.translate(-sway, 0);
+		g.translate(-sway, swayY);
 	}
 
 	@Override
@@ -449,7 +450,8 @@ public class Client extends BasicGameState {
 		
 		//sway
 		t++;
-		sway = thread.drunk_level * (float)Math.cos(0.5f * t);
+		sway = 5 * thread.drunk_level * (float)Math.cos(0.1f * t);
+		swayY = 3 * thread.drunk_level * (float)Math.cos(0.1f * t - 2.1f);
 		
 		//check for changes in coordinates then broadcast the MOVE message
 		if(past_x!=players[id].getX() || past_y!=players[id].getY()){

@@ -6,10 +6,6 @@ import javax.swing.*;
 
 public class MyClient extends JFrame {
  
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
 	JLabel chatWindow, onlineClients;
 	JPanel leftPanel, rightPanel, msgPanel, chatPanel, onlinePanel;
 	JTextArea leftText, rightText, msgField;
