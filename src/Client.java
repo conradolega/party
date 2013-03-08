@@ -423,17 +423,11 @@ public class Client extends BasicGameState {
 		//check for player-to-platform collisions
 		for(int i=0; i<NUM_OF_PLATFORMS; i++){
 			if(platforms[i].intersects(players[id].getHitbox())){
-				boolean flag = true;
 
-				if (past_x>(platforms[i].getX()+platforms[i].getWidth()) - 1) {
-					players[id].setX(platforms[i].getX() + platforms[i].getWidth());
-					flag = false;
+				if (past_x>(platforms[i].getX()+platforms[i].getWidth() - 1) && (past_y + players[id].getHitbox().getHeight())>platforms[i].getY()) {
+					players[id].setX(platforms[i].getX() + platforms[i].getWidth() + 1);
 				}
-				if (past_x<platforms[i].getX()) {
-					players[id].setX(platforms[i].getX() - players[id].getHitbox().getWidth());
-					flag = false;
-				}
-				if (past_y<platforms[i].getY() && flag) {
+				else if (past_y<platforms[i].getY() && (past_x + players[id].getHitbox().getWidth()) > platforms[i].getX()) {
 					players[id].setY(platforms[i].getY() - players[id].getHitbox().getHeight());
 					
 					//set jumping to false, speed to 0, acceleration along y to 0 when touching the ground
@@ -441,9 +435,12 @@ public class Client extends BasicGameState {
 					players[id].setSpeedY(0);
 					players[id].setAccelerationY(0);
 				}
-				if (past_y>(platforms[i].getY()+platforms[i].getHeight())) {
+				if (past_y>(platforms[i].getY()+platforms[i].getHeight() - 1) && (past_x + players[id].getHitbox().getWidth()) > platforms[i].getX()) {
 					players[id].setY(platforms[i].getY() + platforms[i].getHeight() + 1);
 					players[id].setSpeedY(0);
+				}
+				else if (past_x<platforms[i].getX() && (past_y + players[id].getHitbox().getHeight()) > platforms[i].getY()) {
+					players[id].setX(platforms[i].getX() - players[id].getHitbox().getWidth());
 				}
 			}
 		}
