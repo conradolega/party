@@ -213,9 +213,7 @@ public class Client extends BasicGameState {
 	Graphics hGraphics, vGraphics;
 	
 	public Client(int state) {
-		try {
-			socket = new Socket("127.0.0.1", 8888);
-		} catch (Exception e) {}
+
 	}
 
 	@Override
@@ -233,15 +231,6 @@ public class Client extends BasicGameState {
 		platforms[6] = new Rectangle(300,420,200,10);
 		platforms[7] = new Rectangle(100,500,200,10);
 		platforms[8] = new Rectangle(500,500,200,10);
-		
-
-		thread = new PlayerThread(socket, players);
-		thread.start();
-		active = 1;
-		t = 0;
-		random = new Random();
-		randX = 0.0f;
-		randY = 0.0f;
 		
 		hImage = Image.createOffscreenImage(800, 600);
 		hGraphics = hImage.getGraphics();
@@ -271,6 +260,23 @@ public class Client extends BasicGameState {
 		ShaderProgram.unbindAll();
 	}
 
+	@Override
+	public void enter(GameContainer gc, StateBasedGame sbg)
+			throws SlickException {
+		super.enter(gc, sbg);
+		try {
+			Game game = (Game) sbg;
+			socket = new Socket(game.ip, Integer.parseInt(game.port));
+		} catch (Exception e) {}
+		thread = new PlayerThread(socket, players);
+		thread.start();
+		active = 1;
+		t = 0;
+		random = new Random();
+		randX = 0.0f;
+		randY = 0.0f;
+	}
+	
 	// While not drunk, do only this; otherwise do this and apply shader
 	public void prerender(GameContainer gc, StateBasedGame sbg, Graphics g)
 		throws SlickException {

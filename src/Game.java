@@ -11,12 +11,16 @@ public class Game extends StateBasedGame {
 	public static final int PLAY = 1;
 	public static final int CLIENT = 2;
 	
+	public String ip, port;
+	
 	public Game(String NAME) {
 		super(NAME);
+		this.ip = "";
+		this.port = "";
 		this.addState(new Menu(MENU));
 		this.addState(new Play(PLAY));
 		this.addState(new Client(CLIENT));
-		this.enterState(CLIENT);
+		this.enterState(MENU);
 	}
 	
 	@Override
