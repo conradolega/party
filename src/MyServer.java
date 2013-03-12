@@ -63,6 +63,9 @@ class ClientThread extends Thread {
 				else if (this.msg.substring(0, 4).equals("PUSH")){
 					this.server.sendToAll(this.msg.substring(0, 4) + " " + this.name + this.msg.substring(4), false);
 				}
+				else if (this.msg.equals("START")) {
+					this.server.sendToAll("START", false);
+				}
 				else this.server.sendToAll(this.msg, false);
 			}
 		} catch (Exception e) {
@@ -124,6 +127,7 @@ public class MyServer {
 				clients.get(clients.size() - 1).sendMessage("Number: " + (clients.size() - 1), false);
 				sendList();			
 				connected++;
+				if (connected >= 2) sendToAll("READY", false);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -133,7 +133,7 @@ class PlayerThread extends Thread {
 	String msg;
 	int active, id, drunk_level; // active = number of connected players
 	Player[] players; //reference to the players in the Client class
-	
+	boolean started, ready;
 	
 	public PlayerThread(Socket socket, Player[] players) {
 		this.socket = socket;
@@ -142,24 +142,31 @@ class PlayerThread extends Thread {
 		this.active = 0;
 		this.drunk_level = 0;
 		this.players = players;
+		this.started = false;
+		this.ready = false;
 	}
 	
 	//TODO manage protocols here 
 	public void run() {
 		while (true) {
 			msg = conn.getMessage();
-			System.out.println("Message: " + msg);
+			System.out.println(msg);
 
-			if (msg.substring(0, 7).equals("Active ")) {
-				active = Integer.parseInt(msg.substring(7));
-			} 
+			if (msg.equals("READY")) {
+				ready = true;
+			}
+			else if (msg.equals("START ")) {
+				started = true;
+			}
 			else if (msg.substring(0, 7).equals("Number:")) {
 				id = Integer.parseInt(msg.substring(8));
+			}
+			else if (msg.substring(0, 7).equals("Active ")) {
+				active = Integer.parseInt(msg.substring(7));
 			}
 			//PROTOCOL: MOVE <PLAYERID> <X> <Y>
 			//example: MOVE 2 356 45
 			else if(msg.substring(0,4).equals("MOVE")){
-				System.out.println("Moveing " + msg.charAt(5));
 				int player_id = msg.charAt(5) - 48;
 				float x,y;
 				String temp_x = "", temp_msg = msg.substring(7);
@@ -189,7 +196,7 @@ class PlayerThread extends Thread {
 				}
 			}
 			//PROTOCOL: ALCOHOL
-			else if (msg.equals("ALCOHOL")) {
+			else if (msg.equals("ALCOHOL") && started) {
 				drunk_level += 1;
 			}
 		}
@@ -211,6 +218,7 @@ public class Client extends BasicGameState {
 	ShaderProgram hShader, vShader;
 	Image hImage, vImage, bg;
 	Graphics hGraphics, vGraphics;
+	boolean ready, started;
 	
 	public Client(int state) {
 
@@ -231,6 +239,9 @@ public class Client extends BasicGameState {
 		platforms[6] = new Rectangle(300,420,200,10);
 		platforms[7] = new Rectangle(100,500,200,10);
 		platforms[8] = new Rectangle(500,500,200,10);
+		
+		started = false;
+		ready = false;
 		
 		hImage = Image.createOffscreenImage(800, 600);
 		hGraphics = hImage.getGraphics();
@@ -296,43 +307,51 @@ public class Client extends BasicGameState {
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
-		g.translate(sway, swayY);
-		
-		if (thread.drunk_level > 0) {
-			Graphics.setCurrent(hGraphics);
-			hGraphics.clear();
+		if (ready && started) {
+			g.translate(sway, swayY);
 			
-			hGraphics.flush();
+			if (thread.drunk_level > 0) {
+				Graphics.setCurrent(hGraphics);
+				hGraphics.clear();
+				
+				hGraphics.flush();
+				
+				prerender(gc, sbg, hGraphics);
+				
+				hShader.bind();
+				hShader.setUniform1f("radius", 0.3f * thread.drunk_level);
+				
+				Graphics.setCurrent(vGraphics);
+				vGraphics.clear();
+				vGraphics.drawImage(hImage, 0f, 0f);
+				
+				vGraphics.flush();
+				hShader.unbind();
+				
+				vShader.bind();
+				vShader.setUniform1f("radius", 0.3f * thread.drunk_level);
+				
+				Graphics.setCurrent(g);
+				g.drawImage(vImage, 0f, 0f);
+				
+				ShaderProgram.unbindAll();
+			}
+			else {
+				prerender(gc, sbg, g);	
+			}
+			// Draw strings last; draw image first
+			g.drawString(" " + thread.msg, 20, 20);
+			g.drawString("ID: " + id, 700, 20);
+			g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
 			
-			prerender(gc, sbg, hGraphics);
-			
-			hShader.bind();
-			hShader.setUniform1f("radius", 0.3f * thread.drunk_level);
-			
-			Graphics.setCurrent(vGraphics);
-			vGraphics.clear();
-			vGraphics.drawImage(hImage, 0f, 0f);
-			
-			vGraphics.flush();
-			hShader.unbind();
-			
-			vShader.bind();
-			vShader.setUniform1f("radius", 0.3f * thread.drunk_level);
-			
-			Graphics.setCurrent(g);
-			g.drawImage(vImage, 0f, 0f);
-			
-			ShaderProgram.unbindAll();
+			g.translate(-sway, swayY);
 		}
-		else {
-			prerender(gc, sbg, g);	
+		else if (!started && ready) {
+			g.drawString("Press ENTER to start", 100, 100);
 		}
-		// Draw strings last; draw image first
-		g.drawString(" " + thread.msg, 20, 20);
-		g.drawString("ID: " + id, 700, 20);
-		g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
-		
-		g.translate(-sway, swayY);
+		else if (!started && !ready) {
+			g.drawString("Please wait for other players", 100, 100);
+		}
 	}
 
 	@Override
@@ -348,117 +367,130 @@ public class Client extends BasicGameState {
 		
 		active = thread.active;
 		id = thread.id;
-		if (thread.drunk_level >= 5) {
-			randX = (thread.drunk_level - 4) * (random.nextInt(2) + 1);
-			randY = (thread.drunk_level - 4)* (random.nextInt(5) + 1);
-		}
 		
-		Input input = gc.getInput();
-		if (input.isKeyDown(Input.KEY_RIGHT)) {
-			if(players[id].getSpeedX() + 400f + randX <= 600f){
-				players[id].setSpeedX(players[id].getSpeedX() + 400f + randX);
+		started = thread.started;
+		ready = thread.ready;
+		
+		if (started && ready) {
+			if (thread.drunk_level >= 5) {
+				randX = (thread.drunk_level - 4) * (random.nextInt(2) + 1);
+				randY = (thread.drunk_level - 4)* (random.nextInt(5) + 1);
 			}
-			players[id].setDirection(1);
-		}
-		if (input.isKeyDown(Input.KEY_LEFT)) {
-			if(players[id].getSpeedX() - 400f + randX >= -600f){
-				players[id].setSpeedX(players[id].getSpeedX() - 400f + randX);
+			
+			Input input = gc.getInput();
+			if (input.isKeyDown(Input.KEY_RIGHT)) {
+				if(players[id].getSpeedX() + 400f + randX <= 600f){
+					players[id].setSpeedX(players[id].getSpeedX() + 400f + randX);
+				}
+				players[id].setDirection(1);
 			}
-			players[id].setDirection(-1);
-		}
-		if (input.isKeyDown(Input.KEY_UP) && !players[id].isJumping()) {
-			players[id].setSpeedY(-600f + randY);
+			if (input.isKeyDown(Input.KEY_LEFT)) {
+				if(players[id].getSpeedX() - 400f + randX >= -600f){
+					players[id].setSpeedX(players[id].getSpeedX() - 400f + randX);
+				}
+				players[id].setDirection(-1);
+			}
+			if (input.isKeyDown(Input.KEY_UP) && !players[id].isJumping()) {
+				players[id].setSpeedY(-600f + randY);
+				players[id].setJumping(true);
+			}
+			if (input.isKeyPressed(Input.KEY_SPACE)){
+				thread.conn.sendMessage("PUSH "+players[id].getDirection());
+			}
+	
+			//increment downward acceleration by g if player is on air
+			if(players[id].isJumping()) players[id].setAccelerationY(players[id].getAccelerationY() + g * seconds);
+			//set new speed using the acceleration along y
+			players[id].setSpeedY(players[id].getSpeedY() + players[id].getAccelerationY());
+	
+			//set new speed along X because of friction
+			if(players[id].getSpeedX() != 0){
+				if(players[id].getSpeedX()>0){
+					players[id].setSpeedX(players[id].getSpeedX() - 100f - randX);
+				}
+				else{
+					players[id].setSpeedX(players[id].getSpeedX() + 100f + randX);
+				}
+			}
+			
+			//set new x and y using the speed along x and y
+			players[id].setX(players[id].getX() + players[id].getSpeedX() * seconds);
+			players[id].setY(players[id].getY() + players[id].getSpeedY() * seconds);
+			
+			//set jumping to true by default then set to false only when landing on ground
 			players[id].setJumping(true);
-		}
-		if (input.isKeyPressed(Input.KEY_SPACE)){
-			thread.conn.sendMessage("PUSH "+players[id].getDirection());
-		}
-
-		//increment downward acceleration by g if player is on air
-		if(players[id].isJumping()) players[id].setAccelerationY(players[id].getAccelerationY() + g * seconds);
-		//set new speed using the acceleration along y
-		players[id].setSpeedY(players[id].getSpeedY() + players[id].getAccelerationY());
-
-		//set new speed along X because of friction
-		if(players[id].getSpeedX() != 0){
-			if(players[id].getSpeedX()>0){
-				players[id].setSpeedX(players[id].getSpeedX() - 100f - randX);
-			}
-			else{
-				players[id].setSpeedX(players[id].getSpeedX() + 100f + randX);
-			}
-		}
-		
-		//set new x and y using the speed along x and y
-		players[id].setX(players[id].getX() + players[id].getSpeedX() * seconds);
-		players[id].setY(players[id].getY() + players[id].getSpeedY() * seconds);
-		
-		//set jumping to true by default then set to false only when landing on ground
-		players[id].setJumping(true);
-		
-		// check for player-to-player collisions
-		for (int i = 0; i < active; i++) {
-			if (i != id) {
-				if (players[i].getHitbox().intersects(players[id].getHitbox())) {
-					boolean flag = true;
-
-					if (past_x > (players[i].getX() + players[i].getHitbox().getWidth()) - 1) {
-						players[id].setX(players[i].getX() + players[i].getHitbox().getWidth());
-						flag = false;	
+			
+			// check for player-to-player collisions
+			for (int i = 0; i < active; i++) {
+				if (i != id) {
+					if (players[i].getHitbox().intersects(players[id].getHitbox())) {
+						boolean flag = true;
+	
+						if (past_x > (players[i].getX() + players[i].getHitbox().getWidth()) - 1) {
+							players[id].setX(players[i].getX() + players[i].getHitbox().getWidth());
+							flag = false;	
+						}
+						if (past_x < players[i].getX()) {
+							players[id].setX(players[i].getX() - players[id].getHitbox().getWidth());
+							flag = false;
+						}
+						if (past_y < players[i].getY() && flag) {
+							players[id].setY(players[i].getY() - players[id].getHitbox().getHeight() - 1);
+							
+							//set jumping to false, speed to 0, acceleration along y to 0 when touching a player below
+							players[id].setJumping(false);
+							players[id].setSpeedY(0);
+							players[id].setAccelerationY(0);
+						}
+						if (past_y > (players[i].getY() + players[i].getHitbox().getHeight())) {
+							players[id].setY(players[i].getY() + players[i].getHitbox().getHeight() + 1);
+							players[id].setSpeedY(0);
+						}
 					}
-					if (past_x < players[i].getX()) {
-						players[id].setX(players[i].getX() - players[id].getHitbox().getWidth());
-						flag = false;
+				}
+			}
+			
+			//check for player-to-platform collisions
+			for(int i=0; i<NUM_OF_PLATFORMS; i++){
+				if(platforms[i].intersects(players[id].getHitbox())){
+	
+					if (past_x>(platforms[i].getX()+platforms[i].getWidth() - 1) && (past_y + players[id].getHitbox().getHeight())>platforms[i].getY()) {
+						players[id].setX(platforms[i].getX() + platforms[i].getWidth() + 1);
 					}
-					if (past_y < players[i].getY() && flag) {
-						players[id].setY(players[i].getY() - players[id].getHitbox().getHeight() - 1);
+					else if (past_y<platforms[i].getY() && (past_x + players[id].getHitbox().getWidth()) > platforms[i].getX()) {
+						players[id].setY(platforms[i].getY() - players[id].getHitbox().getHeight());
 						
-						//set jumping to false, speed to 0, acceleration along y to 0 when touching a player below
+						//set jumping to false, speed to 0, acceleration along y to 0 when touching the ground
 						players[id].setJumping(false);
 						players[id].setSpeedY(0);
 						players[id].setAccelerationY(0);
 					}
-					if (past_y > (players[i].getY() + players[i].getHitbox().getHeight())) {
-						players[id].setY(players[i].getY() + players[i].getHitbox().getHeight() + 1);
+					if (past_y>(platforms[i].getY()+platforms[i].getHeight() - 1) && (past_x + players[id].getHitbox().getWidth()) > platforms[i].getX()) {
+						players[id].setY(platforms[i].getY() + platforms[i].getHeight() + 1);
 						players[id].setSpeedY(0);
+					}
+					else if (past_x<platforms[i].getX() && (past_y + players[id].getHitbox().getHeight()) > platforms[i].getY()) {
+						players[id].setX(platforms[i].getX() - players[id].getHitbox().getWidth());
 					}
 				}
 			}
-		}
-		
-		//check for player-to-platform collisions
-		for(int i=0; i<NUM_OF_PLATFORMS; i++){
-			if(platforms[i].intersects(players[id].getHitbox())){
-
-				if (past_x>(platforms[i].getX()+platforms[i].getWidth() - 1) && (past_y + players[id].getHitbox().getHeight())>platforms[i].getY()) {
-					players[id].setX(platforms[i].getX() + platforms[i].getWidth() + 1);
-				}
-				else if (past_y<platforms[i].getY() && (past_x + players[id].getHitbox().getWidth()) > platforms[i].getX()) {
-					players[id].setY(platforms[i].getY() - players[id].getHitbox().getHeight());
-					
-					//set jumping to false, speed to 0, acceleration along y to 0 when touching the ground
-					players[id].setJumping(false);
-					players[id].setSpeedY(0);
-					players[id].setAccelerationY(0);
-				}
-				if (past_y>(platforms[i].getY()+platforms[i].getHeight() - 1) && (past_x + players[id].getHitbox().getWidth()) > platforms[i].getX()) {
-					players[id].setY(platforms[i].getY() + platforms[i].getHeight() + 1);
-					players[id].setSpeedY(0);
-				}
-				else if (past_x<platforms[i].getX() && (past_y + players[id].getHitbox().getHeight()) > platforms[i].getY()) {
-					players[id].setX(platforms[i].getX() - players[id].getHitbox().getWidth());
-				}
+			
+			//sway
+			t++;
+			sway = 5 * thread.drunk_level * (float)Math.cos(0.1f * t);
+			swayY = 3 * thread.drunk_level * (float)Math.cos(0.1f * t - 2.1f);
+			
+			//check for changes in coordinates then broadcast the MOVE message
+			if(past_x!=players[id].getX() || past_y!=players[id].getY()){
+				thread.conn.sendMessage("MOVE "+players[id].getX()+" "+players[id].getY());
 			}
 		}
-		
-		//sway
-		t++;
-		sway = 5 * thread.drunk_level * (float)Math.cos(0.1f * t);
-		swayY = 3 * thread.drunk_level * (float)Math.cos(0.1f * t - 2.1f);
-		
-		//check for changes in coordinates then broadcast the MOVE message
-		if(past_x!=players[id].getX() || past_y!=players[id].getY()){
-			thread.conn.sendMessage("MOVE "+players[id].getX()+" "+players[id].getY());
+		else if (ready && !started) {
+			Input input = gc.getInput();
+			
+			if (input.isKeyDown(Input.KEY_ENTER)) {
+				thread.conn.sendMessage("START");
+			}
 		}
 	}
 
