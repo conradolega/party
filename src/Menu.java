@@ -26,6 +26,7 @@ public class Menu extends BasicGameState {
 		// TODO Auto-generated method stub
 		ipfield = new TextField(gc, gc.getDefaultFont(), 250, 100, 200, 30);
 		portfield = new TextField(gc, gc.getDefaultFont(), 250, 200, 200, 30);
+		ipfield.setFocus(true);
 	}
 
 	@Override
@@ -47,13 +48,16 @@ public class Menu extends BasicGameState {
 		// TODO Auto-generated method stub
 		Input input = gc.getInput();
 
-		if (input.isMouseButtonDown(input.MOUSE_LEFT_BUTTON) &&
+		if ((input.isMouseButtonDown(input.MOUSE_LEFT_BUTTON) &&
 				input.getMouseX() >= 350 && input.getMouseX() <= 600 &&
-				input.getMouseY() >= 450 && input.getMouseY() <= 480) {
+				input.getMouseY() >= 450 && input.getMouseY() <= 480) || input.isKeyPressed(Input.KEY_ENTER)) {
 			Game game = (Game) sbg;
 			game.ip = ipfield.getText();
 			game.port = portfield.getText();
 			sbg.enterState(game.CLIENT);
+		}
+		if(input.isKeyPressed(Input.KEY_TAB)){
+			portfield.setFocus(true);
 		}
 	}
 

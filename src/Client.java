@@ -2,11 +2,13 @@ import java.net.Socket;
 import java.util.Random;
 import java.lang.Math;
 
+import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
+import org.newdawn.slick.geom.Polygon;
 import org.newdawn.slick.geom.Rectangle;
 import org.newdawn.slick.opengl.shader.ShaderProgram;
 import org.newdawn.slick.state.BasicGameState;
@@ -23,6 +25,7 @@ class Player {
 	int direction; //1: right, -1: left
 	boolean is_jumping;
 	Rectangle hitbox, r_pushbox, l_pushbox;
+	Polygon arrow;
 	Image sprite;
 	
 	public Player() throws SlickException{
@@ -38,6 +41,11 @@ class Player {
 		is_jumping = false;
 		sprite = new Image("img/ball.png");
 		hitbox = new Rectangle(x,y,sprite.getWidth(),sprite.getHeight());
+		arrow = new Polygon();
+		
+		arrow.addPoint(x,y-15);
+		arrow.addPoint(x+hitbox.getWidth(), y-15);
+		arrow.addPoint(x+hitbox.getWidth()/2,y-5);
 		
 		l_pushbox = new Rectangle(x-hitbox.getWidth()*0.5f, y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f);
 		r_pushbox = new Rectangle(x+hitbox.getWidth(), y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f); 
@@ -54,6 +62,7 @@ class Player {
 	public void setX(float newx){
 		x = newx;
 		hitbox.setX(newx);
+		arrow.setX(newx-290-hitbox.getWidth()*2);
 		l_pushbox.setX(x-hitbox.getWidth()*0.5f);
 		r_pushbox.setX(x+hitbox.getWidth());
 	}
@@ -64,6 +73,7 @@ class Player {
 		
 		y = newy;
 		hitbox.setY(newy);
+		arrow.setY(newy - 30);
 		r_pushbox.setY(y+hitbox.getHeight()*0.25f);
 		l_pushbox.setY(y+hitbox.getHeight()*0.25f);
 	}
@@ -125,6 +135,10 @@ class Player {
 	public int getDirection(){
 		return direction;
 	}
+	
+	public Polygon getArrow(){
+		return arrow;
+	}
 }
 
 class PlayerThread extends Thread {
@@ -169,13 +183,15 @@ class PlayerThread extends Thread {
 			else if(msg.substring(0,4).equals("MOVE")){
 				int player_id = msg.charAt(5) - 48;
 				float x,y;
-				String temp_x = "", temp_msg = msg.substring(7);
-				//PARSE THE <X> AND <Y>
-				temp_x = temp_msg.substring(0, temp_msg.indexOf(' '));
-				x = Float.parseFloat(temp_x);
-				y = Float.parseFloat(temp_msg.substring(temp_msg.indexOf(' ')));
-				players[player_id].setX(x);
-				players[player_id].setY(y);
+				if(player_id != id){
+					String temp_x = "", temp_msg = msg.substring(7);
+					//PARSE THE <X> AND <Y>
+					temp_x = temp_msg.substring(0, temp_msg.indexOf(' '));
+					x = Float.parseFloat(temp_x);
+					y = Float.parseFloat(temp_msg.substring(temp_msg.indexOf(' ')));
+					players[player_id].setX(x);
+					players[player_id].setY(y);
+				}
 			}
 			//PROTOCOL: PUSH <PLAYERID> <PLAYER_DIRECTION>
 			//example: PUSH 1 -1
@@ -189,7 +205,7 @@ class PlayerThread extends Thread {
 				if(pusher_id != i){
 					System.out.println("pusher_id: " + pusher_id + " direction: " + direction);
 					if((direction == -1 && players[i].getHitbox().intersects(players[pusher_id].getLeftPushBox())) || (direction == 1 && players[i].getHitbox().intersects(players[pusher_id].getRightPushBox()))){
-						float new_speed = direction * 1000f;
+						float new_speed = direction * (1000f + drunk_level*100);
 						System.out.println("new_speed: " + new_speed + " i: " + i);
 						players[i].setSpeedX(new_speed);
 					}
@@ -294,9 +310,9 @@ public class Client extends BasicGameState {
 		g.drawImage(bg, 0, 0);
 		for (int i = 0; i < active; i++){
 			g.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
-			g.draw(players[i].getHitbox());
-			g.draw(players[i].getRightPushBox());
-			g.draw(players[i].getLeftPushBox());
+//			g.draw(players[i].getHitbox());
+//			g.draw(players[i].getRightPushBox());
+//			g.draw(players[i].getLeftPushBox());
 		}
 		for (int i = 0; i < NUM_OF_PLATFORMS; i++){
 			g.fill(platforms[i]);
@@ -319,7 +335,7 @@ public class Client extends BasicGameState {
 				prerender(gc, sbg, hGraphics);
 				
 				hShader.bind();
-				hShader.setUniform1f("radius", 0.3f * thread.drunk_level);
+				hShader.setUniform1f("radius", 0.2f * thread.drunk_level);
 				
 				Graphics.setCurrent(vGraphics);
 				vGraphics.clear();
@@ -329,7 +345,7 @@ public class Client extends BasicGameState {
 				hShader.unbind();
 				
 				vShader.bind();
-				vShader.setUniform1f("radius", 0.3f * thread.drunk_level);
+				vShader.setUniform1f("radius", 0.2f * thread.drunk_level);
 				
 				Graphics.setCurrent(g);
 				g.drawImage(vImage, 0f, 0f);
@@ -345,6 +361,10 @@ public class Client extends BasicGameState {
 			g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
 			
 			g.translate(-sway, swayY);
+
+			g.setColor(Color.orange); //GO ENGG
+			g.fill(players[id].getArrow());
+			g.setColor(Color.white);
 		}
 		else if (!started && ready) {
 			g.drawString("Press ENTER to start", 100, 100);
