@@ -2,12 +2,14 @@ import java.net.Socket;
 import java.util.Random;
 import java.lang.Math;
 
+import org.newdawn.slick.Animation;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
+import org.newdawn.slick.SpriteSheet;
 import org.newdawn.slick.geom.Polygon;
 import org.newdawn.slick.geom.Rectangle;
 import org.newdawn.slick.opengl.shader.ShaderProgram;
@@ -26,9 +28,10 @@ class Player {
 	boolean is_jumping;
 	Rectangle hitbox, r_pushbox, l_pushbox;
 	Polygon arrow;
-	Image sprite;
+	Image dance_sprite_sheet;
+	Animation left_animation, right_animation;
 	
-	public Player() throws SlickException{
+	public Player(Image dance_sprite_sheet) throws SlickException{
 		//Starting position
 		x = 355.0f;
 		y = 35.0f;
@@ -39,8 +42,12 @@ class Player {
 		
 		direction = 0;
 		is_jumping = false;
-		sprite = new Image("img/ball.png");
-		hitbox = new Rectangle(x,y,sprite.getWidth(),sprite.getHeight());
+		
+		this.dance_sprite_sheet = dance_sprite_sheet;
+		left_animation = new Animation(new SpriteSheet(dance_sprite_sheet, 110, 128), 100);
+		right_animation = new Animation(new SpriteSheet(dance_sprite_sheet.getFlippedCopy(true, false), 110, 128), 100);
+		
+		hitbox = new Rectangle(x,y,50,104); //hard coded
 		arrow = new Polygon();
 		
 		arrow.addPoint(x,y-15);
@@ -78,8 +85,17 @@ class Player {
 		l_pushbox.setY(y+hitbox.getHeight()*0.25f);
 	}
 	
-	public Image getImage(){
-		return sprite;
+//	public Image getImage(){
+//		return sprite;
+//	}
+	
+	public Animation getAnimation(){
+		if(direction==-1){
+			return left_animation;
+		}
+		else{
+			return right_animation;
+		}
 	}
 	
 	public Rectangle getHitbox(){
@@ -250,6 +266,7 @@ public class Client extends BasicGameState {
 	Image hImage, vImage, bg;
 	Graphics hGraphics, vGraphics;
 	boolean ready, started, dead;
+	Image dance_sprite_sheet;
 	
 	public Client(int state) {
 
@@ -259,8 +276,9 @@ public class Client extends BasicGameState {
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
 		bg = new Image("img/bg.jpg");
+		dance_sprite_sheet = new Image("img/Dance.png");
 		
-		for (int i = 0; i < 4; i++) players[i] = new Player();
+		for (int i = 0; i < 4; i++) players[i] = new Player(dance_sprite_sheet);
 		platforms[0] = new Rectangle(300,100,200,10);
 		platforms[1] = new Rectangle(100,180,200,10);
 		platforms[2] = new Rectangle(500,180,200,10);
@@ -325,10 +343,8 @@ public class Client extends BasicGameState {
 		throws SlickException {
 		g.drawImage(bg, 0, 0);
 		for (int i = 0; i < active; i++){
-			g.drawImage(players[i].getImage(), players[i].getX(), players[i].getY());
-//			g.draw(players[i].getHitbox());
-//			g.draw(players[i].getRightPushBox());
-//			g.draw(players[i].getLeftPushBox());
+			g.drawAnimation(players[i].getAnimation(), players[i].getX() - 30, players[i].getY() - 20); //hard coded
+			g.draw(players[id].getHitbox());
 		}
 		for (int i = 0; i < NUM_OF_PLATFORMS; i++){
 			g.fill(platforms[i]);
@@ -371,21 +387,23 @@ public class Client extends BasicGameState {
 			else {
 				prerender(gc, sbg, g);	
 			}
-			// Draw strings last; draw image first
-			g.drawString(" " + thread.msg, 20, 20);
-			g.drawString("ID: " + id, 700, 20);
-			g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
 			
-			g.translate(-sway, swayY);
-
+			// DRAW ORANGE TRIANGLE
 			g.setColor(Color.orange); //GO ENGG
 			g.fill(players[id].getArrow());
 			g.setColor(Color.white);
 			
-			//TEST
+			// Draw strings last; draw image first
+			g.drawString(" " + thread.msg, 20, 20);
+			g.drawString("ID: " + id, 700, 20);
+			g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
+
+			//PRINT WIN
 			if(thread.dead_players == active-1){
 				g.drawString("YOU WIN!!!!!!!", 200, 200);
 			}
+			
+			g.translate(-sway, swayY);
 		}
 		else if (!started && ready) {
 			g.drawString("Press ENTER to start", 100, 100);
