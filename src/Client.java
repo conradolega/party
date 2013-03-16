@@ -69,7 +69,7 @@ class Player {
 	
 	public void setY(float newy){
 		//limit maximum y
-		if(newy>600) newy = 600;
+		if(newy>1000) newy = 1000;
 		
 		y = newy;
 		hitbox.setY(newy);
@@ -146,6 +146,7 @@ class PlayerThread extends Thread {
 	MyConnection conn;
 	String msg;
 	int active, id, drunk_level; // active = number of connected players
+	int dead_players = 0; 
 	Player[] players; //reference to the players in the Client class
 	boolean started, ready;
 	
@@ -171,6 +172,20 @@ class PlayerThread extends Thread {
 			}
 			else if (msg.equals("START ")) {
 				started = true;
+			}
+			//PROTOCOL: DEAD <playerid>
+			//Example: DEAD 1
+			else if(msg.substring(0, 4).equals("DEAD")){
+				System.out.println("DEAD");
+				int dead_id = msg.charAt(5) - 48;
+				
+				if(dead_id != id){
+					dead_players++;
+					
+					if(dead_players == active-1){
+						System.out.println("YOU ARE THE WINNER");
+					}
+				}
 			}
 			else if (msg.substring(0, 7).equals("Number:")) {
 				id = Integer.parseInt(msg.substring(8));
@@ -234,7 +249,7 @@ public class Client extends BasicGameState {
 	ShaderProgram hShader, vShader;
 	Image hImage, vImage, bg;
 	Graphics hGraphics, vGraphics;
-	boolean ready, started;
+	boolean ready, started, dead;
 	
 	public Client(int state) {
 
@@ -302,6 +317,7 @@ public class Client extends BasicGameState {
 		random = new Random();
 		randX = 0.0f;
 		randY = 0.0f;
+		dead = false;
 	}
 	
 	// While not drunk, do only this; otherwise do this and apply shader
@@ -365,6 +381,11 @@ public class Client extends BasicGameState {
 			g.setColor(Color.orange); //GO ENGG
 			g.fill(players[id].getArrow());
 			g.setColor(Color.white);
+			
+			//TEST
+			if(thread.dead_players == active-1){
+				g.drawString("YOU WIN!!!!!!!", 200, 200);
+			}
 		}
 		else if (!started && ready) {
 			g.drawString("Press ENTER to start", 100, 100);
@@ -391,7 +412,7 @@ public class Client extends BasicGameState {
 		started = thread.started;
 		ready = thread.ready;
 		
-		if (started && ready) {
+		if (started && ready && !dead) {
 			if (thread.drunk_level >= 5) {
 				randX = (thread.drunk_level - 4) * (random.nextInt(2) + 1);
 				randY = (thread.drunk_level - 4)* (random.nextInt(5) + 1);
@@ -500,6 +521,11 @@ public class Client extends BasicGameState {
 			sway = 5 * thread.drunk_level * (float)Math.cos(0.1f * t);
 			swayY = 3 * thread.drunk_level * (float)Math.cos(0.1f * t - 2.1f);
 			
+			//SEND DEATH MESSAGE TO SERVER
+			if(players[id].getY()>=600){
+				thread.conn.sendMessage("DEAD");
+				dead = true;
+			}
 			//check for changes in coordinates then broadcast the MOVE message
 			if(past_x!=players[id].getX() || past_y!=players[id].getY()){
 				thread.conn.sendMessage("MOVE "+players[id].getX()+" "+players[id].getY());

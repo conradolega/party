@@ -66,6 +66,9 @@ class ClientThread extends Thread {
 				else if (this.msg.equals("START")) {
 					this.server.sendToAll("START", false);
 				}
+				else if (this.msg.substring(0, 4).equals("DEAD")){
+					this.server.sendToAll(this.msg.substring(0, 4) + " " + this.name, false);
+				}
 				else this.server.sendToAll(this.msg, false);
 			}
 		} catch (Exception e) {
