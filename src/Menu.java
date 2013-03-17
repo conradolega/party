@@ -1,5 +1,6 @@
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
+import org.newdawn.slick.Image;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.gui.TextField;
@@ -10,6 +11,7 @@ import org.newdawn.slick.state.StateBasedGame;
 public class Menu extends BasicGameState {
 
 	TextField ipfield, portfield;
+	Image logo;
 	
 	public Menu(int state) {
 		
@@ -19,20 +21,19 @@ public class Menu extends BasicGameState {
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
 		// TODO Auto-generated method stub
-		ipfield = new TextField(gc, gc.getDefaultFont(), 250, 100, 200, 30);
-		portfield = new TextField(gc, gc.getDefaultFont(), 250, 200, 200, 30);
+		ipfield = new TextField(gc, gc.getDefaultFont(), 325, 350, 200, 30);
+		portfield = new TextField(gc, gc.getDefaultFont(), 325, 400, 200, 30);
 		ipfield.setFocus(true);
+		logo = new Image("img/logo.png");
 	}
 
 	@Override
 	public void render(GameContainer gc, StateBasedGame sbg, Graphics g)
 			throws SlickException {
 		// TODO Auto-generated method stub
-		g.drawString("PARTY ALL NIGHT!!!", 350, 50);
-		g.drawString("IP address:", 100, 100);
-		g.drawString("Port number:", 100, 200);
-		g.drawRect(350, 450, 250, 30);
-		g.drawString("Click here to go to the game", 350, 450);
+		g.drawImage(logo, 0, 0);
+		g.drawString("IP:", 275, 350);
+		g.drawString("Port:", 275, 400);
 		ipfield.render(gc, g);
 		portfield.render(gc, g);
 	}
@@ -43,9 +44,7 @@ public class Menu extends BasicGameState {
 		// TODO Auto-generated method stub
 		Input input = gc.getInput();
 
-		if ((input.isMouseButtonDown(Input.MOUSE_LEFT_BUTTON) &&
-				input.getMouseX() >= 350 && input.getMouseX() <= 600 &&
-				input.getMouseY() >= 450 && input.getMouseY() <= 480) || input.isKeyPressed(Input.KEY_ENTER)) {
+		if (input.isKeyPressed(Input.KEY_ENTER)) {
 			Game game = (Game) sbg;
 			game.ip = ipfield.getText();
 			game.port = portfield.getText();

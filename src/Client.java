@@ -403,6 +403,10 @@ public class Client extends BasicGameState {
 				g.drawString("YOU WIN!!!!!!!", 200, 200);
 			}
 			
+			if (dead && thread.dead_players != active - 1) {
+				g.drawString("YOU LOSE!!!!!!!", 200, 200);
+			}
+			
 			g.translate(-sway, swayY);
 		}
 		else if (!started && ready) {
