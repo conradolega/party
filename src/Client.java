@@ -1,6 +1,5 @@
 import java.net.Socket;
 import java.util.Random;
-import java.lang.Math;
 
 import org.newdawn.slick.Animation;
 import org.newdawn.slick.Color;
@@ -8,7 +7,9 @@ import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.Input;
+import org.newdawn.slick.Music;
 import org.newdawn.slick.SlickException;
+import org.newdawn.slick.Sound;
 import org.newdawn.slick.SpriteSheet;
 import org.newdawn.slick.geom.Polygon;
 import org.newdawn.slick.geom.Rectangle;
@@ -164,7 +165,7 @@ class PlayerThread extends Thread {
 	int active, id, drunk_level; // active = number of connected players
 	int dead_players = 0; 
 	Player[] players; //reference to the players in the Client class
-	boolean started, ready;
+	boolean started, ready, cheer;
 	
 	public PlayerThread(Socket socket, Player[] players) {
 		this.socket = socket;
@@ -175,6 +176,7 @@ class PlayerThread extends Thread {
 		this.players = players;
 		this.started = false;
 		this.ready = false;
+		this.cheer = false;
 	}
 	
 	//TODO manage protocols here 
@@ -245,6 +247,7 @@ class PlayerThread extends Thread {
 			//PROTOCOL: ALCOHOL
 			else if (msg.equals("ALCOHOL") && started) {
 				drunk_level += 1;
+				cheer = true;
 			}
 		}
 	}
@@ -267,6 +270,7 @@ public class Client extends BasicGameState {
 	Graphics hGraphics, vGraphics;
 	boolean ready, started, dead;
 	Image dance_sprite_sheet;
+	Sound cheer, jump, scream, push;
 	
 	public Client(int state) {
 
@@ -277,7 +281,10 @@ public class Client extends BasicGameState {
 			throws SlickException {
 		bg = new Image("img/bg.jpg");
 		dance_sprite_sheet = new Image("img/Dance.png");
-		
+		cheer = new Sound("audio/cheer.ogg");
+		jump = new Sound("audio/jump.wav");
+		scream = new Sound("audio/scream.ogg");
+		push = new Sound("audio/push.wav");
 		for (int i = 0; i < 4; i++) players[i] = new Player(dance_sprite_sheet);
 		platforms[0] = new Rectangle(300,100,200,10);
 		platforms[1] = new Rectangle(100,180,200,10);
@@ -344,7 +351,7 @@ public class Client extends BasicGameState {
 		g.drawImage(bg, 0, 0);
 		for (int i = 0; i < active; i++){
 			g.drawAnimation(players[i].getAnimation(), players[i].getX() - 30, players[i].getY() - 20); //hard coded
-			g.draw(players[id].getHitbox());
+			//g.draw(players[id].getHitbox());
 		}
 		for (int i = 0; i < NUM_OF_PLATFORMS; i++){
 			g.fill(platforms[i]);
@@ -394,10 +401,12 @@ public class Client extends BasicGameState {
 			g.setColor(Color.white);
 			
 			// Draw strings last; draw image first
+			/*
 			g.drawString(" " + thread.msg, 20, 20);
 			g.drawString("ID: " + id, 700, 20);
 			g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
-
+			*/
+			
 			//PRINT WIN
 			if(thread.dead_players == active-1){
 				g.drawString("YOU WIN!!!!!!!", 200, 200);
@@ -440,6 +449,13 @@ public class Client extends BasicGameState {
 				randY = (thread.drunk_level - 4)* (random.nextInt(5) + 1);
 			}
 			
+			if (thread.cheer) {
+				thread.cheer = false;
+				cheer.play();
+			}
+			
+			//if (!gotye.playing()) gotye.loop();
+			
 			Input input = gc.getInput();
 			if (input.isKeyDown(Input.KEY_RIGHT)) {
 				if(players[id].getSpeedX() + 400f + randX <= 600f){
@@ -456,9 +472,11 @@ public class Client extends BasicGameState {
 			if (input.isKeyDown(Input.KEY_UP) && !players[id].isJumping()) {
 				players[id].setSpeedY(-600f + randY);
 				players[id].setJumping(true);
+				jump.play();
 			}
 			if (input.isKeyPressed(Input.KEY_SPACE)){
 				thread.conn.sendMessage("PUSH "+players[id].getDirection());
+				push.play();
 			}
 	
 			//increment downward acceleration by g if player is on air
@@ -547,6 +565,7 @@ public class Client extends BasicGameState {
 			if(players[id].getY()>=600){
 				thread.conn.sendMessage("DEAD");
 				dead = true;
+				scream.play();
 			}
 			//check for changes in coordinates then broadcast the MOVE message
 			if(past_x!=players[id].getX() || past_y!=players[id].getY()){
