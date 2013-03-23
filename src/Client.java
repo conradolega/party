@@ -233,10 +233,17 @@ class PlayerThread extends Thread {
 				float x,y;
 				if(player_id != id){
 					String temp_x = "", temp_msg = msg.substring(7);
+					
 					//PARSE THE <X> AND <Y>
 					temp_x = temp_msg.substring(0, temp_msg.indexOf(' '));
 					x = Float.parseFloat(temp_x);
 					y = Float.parseFloat(temp_msg.substring(temp_msg.indexOf(' ')));
+					if(players[player_id].getX() > x){
+						players[player_id].setDirection(-1);
+					}
+					else if(players[player_id].getX() < x){
+						players[player_id].setDirection(1);
+					}
 					players[player_id].setX(x);
 					players[player_id].setY(y);
 				}
@@ -299,6 +306,8 @@ public class Client extends BasicGameState {
 		lose = new Image("img/lose.png");
 		win = new Image("img/win.png");
 		
+		//SpriteSheet source:
+		//http://10firstgames.wordpress.com/2012/02/25/hd-sprite-sheet/
 		for (int i = 0; i < 4; i++) {
 			player_spritesheets[i][0] = new Image("img/sprite_running" + i + ".png");
 			player_spritesheets[i][1] = new Image("img/sprite_jumping" + i + ".png");

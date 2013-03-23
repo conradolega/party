@@ -42,6 +42,7 @@ public class Menu extends BasicGameState {
 		g.drawString("Port:", 275, 400);
 		ipfield.render(gc, g);
 		portfield.render(gc, g);
+		
 	}
 
 	@Override
