@@ -24,6 +24,8 @@ public class Menu extends BasicGameState {
 		ipfield = new TextField(gc, gc.getDefaultFont(), 325, 350, 200, 30);
 		portfield = new TextField(gc, gc.getDefaultFont(), 325, 400, 200, 30);
 		ipfield.setFocus(true);
+		ipfield.setText("localhost");
+		portfield.setText("8888");
 		logo = new Image("img/logo.png");
 	}
 

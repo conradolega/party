@@ -26,16 +26,16 @@ class Player {
 	float speed_y;
 	float acc_y; //acceleration along y
 	int direction; //1: right, -1: left
-	boolean is_jumping;
+	boolean is_jumping, is_moving, is_pushing;
 	Rectangle hitbox, r_pushbox, l_pushbox;
 	Polygon arrow;
-	Image dance_sprite_sheet;
-	Animation left_animation, right_animation;
+	Image player_spritesheets[];
+	Animation right_run, left_run, right_jump, left_jump, right_push, left_push, right_idle, left_idle;
 	
-	public Player(Image dance_sprite_sheet) throws SlickException{
+	public Player(Image player_spritesheets[], float start_x, float start_y) throws SlickException{
 		//Starting position
-		x = 355.0f;
-		y = 35.0f;
+		x = start_x;
+		y = start_y;
 		
 		speed_x = 0;
 		speed_y = 0;
@@ -43,17 +43,30 @@ class Player {
 		
 		direction = 0;
 		is_jumping = false;
+		is_moving = false;
+		is_pushing = false;
 		
-		this.dance_sprite_sheet = dance_sprite_sheet;
-		left_animation = new Animation(new SpriteSheet(dance_sprite_sheet, 110, 128), 100);
-		right_animation = new Animation(new SpriteSheet(dance_sprite_sheet.getFlippedCopy(true, false), 110, 128), 100);
+		this.player_spritesheets = player_spritesheets;
+		right_run = new Animation(new SpriteSheet(this.player_spritesheets[0], 64, 64), 100);
+		left_run = new Animation(new SpriteSheet(this.player_spritesheets[0].getFlippedCopy(true, false), 64, 64), 100);
+
+		right_jump = new Animation(new SpriteSheet(this.player_spritesheets[1], 64, 64), 50);
+		left_jump = new Animation(new SpriteSheet(this.player_spritesheets[1].getFlippedCopy(true, false), 64, 64), 100);
+
+		right_push = new Animation(new SpriteSheet(this.player_spritesheets[2], 64, 64), 100);
+		right_push.setLooping(false);
+		left_push = new Animation(new SpriteSheet(this.player_spritesheets[2].getFlippedCopy(true, false), 64, 64), 100);
+		left_push.setLooping(false);
+
+		right_idle = new Animation(new SpriteSheet(this.player_spritesheets[3], 64, 64), 100);
+		left_idle = new Animation(new SpriteSheet(this.player_spritesheets[3].getFlippedCopy(true, false), 64, 64), 100);
 		
-		hitbox = new Rectangle(x,y,50,104); //hard coded
+		hitbox = new Rectangle(x,y,55,60); //hard coded hitbox size
 		arrow = new Polygon();
 		
-		arrow.addPoint(x,y-15);
-		arrow.addPoint(x+hitbox.getWidth(), y-15);
-		arrow.addPoint(x+hitbox.getWidth()/2,y-5);
+		arrow.addPoint(0,0);
+		arrow.addPoint(hitbox.getWidth(), 0);
+		arrow.addPoint(hitbox.getWidth()/2,10);
 		
 		l_pushbox = new Rectangle(x-hitbox.getWidth()*0.5f, y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f);
 		r_pushbox = new Rectangle(x+hitbox.getWidth(), y+hitbox.getHeight()*0.25f, hitbox.getWidth()*0.5f, hitbox.getHeight()*0.5f); 
@@ -70,7 +83,7 @@ class Player {
 	public void setX(float newx){
 		x = newx;
 		hitbox.setX(newx);
-		arrow.setX(newx-290-hitbox.getWidth()*2);
+		arrow.setX(newx);
 		l_pushbox.setX(x-hitbox.getWidth()*0.5f);
 		r_pushbox.setX(x+hitbox.getWidth());
 	}
@@ -81,21 +94,23 @@ class Player {
 		
 		y = newy;
 		hitbox.setY(newy);
-		arrow.setY(newy - 30);
+		arrow.setY(newy- 20);
 		r_pushbox.setY(y+hitbox.getHeight()*0.25f);
 		l_pushbox.setY(y+hitbox.getHeight()*0.25f);
 	}
 	
-//	public Image getImage(){
-//		return sprite;
-//	}
-	
 	public Animation getAnimation(){
 		if(direction==-1){
-			return left_animation;
+			if(is_pushing) return left_push;
+			else if(is_jumping) return left_jump;
+			else if(is_moving) return left_run;
+			else return left_idle;
 		}
 		else{
-			return right_animation;
+			if(is_pushing) return right_push;
+			else if(is_jumping) return right_jump;
+			else if(is_moving) return right_run;
+			else return right_idle;
 		}
 	}
 	
@@ -265,11 +280,12 @@ public class Client extends BasicGameState {
 	int id, active, t;
 	Random random;
 	float randX, randY, sway, swayY;
+	float push_timer = 0;
 	ShaderProgram hShader, vShader;
 	Image hImage, vImage, bg;
+	Image[] player_spritesheets = new Image[4];
 	Graphics hGraphics, vGraphics;
 	boolean ready, started, dead;
-	Image dance_sprite_sheet;
 	Sound cheer, jump, scream, push;
 	
 	public Client(int state) {
@@ -280,12 +296,37 @@ public class Client extends BasicGameState {
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
 		bg = new Image("img/bg.jpg");
-		dance_sprite_sheet = new Image("img/Dance.png");
+		player_spritesheets[0] = new Image("img/sprite_running.png");
+		player_spritesheets[1] = new Image("img/sprite_jumping.png");
+		player_spritesheets[2] = new Image("img/sprite_pushing.png");
+		player_spritesheets[3] = new Image("img/sprite_idle.png");
 		cheer = new Sound("audio/cheer.ogg");
 		jump = new Sound("audio/jump.wav");
 		scream = new Sound("audio/scream.ogg");
 		push = new Sound("audio/push.wav");
-		for (int i = 0; i < 4; i++) players[i] = new Player(dance_sprite_sheet);
+		
+		//SET STARTING LOCATIONS
+		//160 120 - P1
+		//555 120 - P2
+		//160 440 - P3
+		//555 440 - P4
+		for (int i = 0; i < 4; i++){
+			float start_y;
+			float start_x;
+			if(i==0 || i==1){
+				start_y = 119;
+			}
+			else{
+				start_y = 439;
+			}
+			if(i==0 || i==2){
+				start_x = 160;
+			}
+			else{
+				start_x = 555;
+			}
+			players[i] = new Player(player_spritesheets, start_x ,start_y);
+		}
 		platforms[0] = new Rectangle(300,100,200,10);
 		platforms[1] = new Rectangle(100,180,200,10);
 		platforms[2] = new Rectangle(500,180,200,10);
@@ -350,8 +391,10 @@ public class Client extends BasicGameState {
 		throws SlickException {
 		g.drawImage(bg, 0, 0);
 		for (int i = 0; i < active; i++){
-			g.drawAnimation(players[i].getAnimation(), players[i].getX() - 30, players[i].getY() - 20); //hard coded
-			//g.draw(players[id].getHitbox());
+			g.drawAnimation(players[i].getAnimation(), players[i].getX(), players[i].getY()); //hard coded
+//			g.draw(players[id].getHitbox());
+//			g.draw(players[id].getLeftPushBox());
+//			g.draw(players[id].getRightPushBox());
 		}
 		for (int i = 0; i < NUM_OF_PLATFORMS; i++){
 			g.fill(platforms[i]);
@@ -462,13 +505,21 @@ public class Client extends BasicGameState {
 					players[id].setSpeedX(players[id].getSpeedX() + 400f + randX);
 				}
 				players[id].setDirection(1);
+				players[id].is_moving = true;
 			}
+				
 			if (input.isKeyDown(Input.KEY_LEFT)) {
 				if(players[id].getSpeedX() - 400f + randX >= -600f){
 					players[id].setSpeedX(players[id].getSpeedX() - 400f + randX);
 				}
 				players[id].setDirection(-1);
+				players[id].is_moving = true;
 			}
+			
+			if(!input.isKeyDown(Input.KEY_LEFT) && !input.isKeyDown(Input.KEY_RIGHT)){
+				players[id].is_moving = false;
+			}
+			
 			if (input.isKeyDown(Input.KEY_UP) && !players[id].isJumping()) {
 				players[id].setSpeedY(-600f + randY);
 				players[id].setJumping(true);
@@ -477,6 +528,18 @@ public class Client extends BasicGameState {
 			if (input.isKeyPressed(Input.KEY_SPACE)){
 				thread.conn.sendMessage("PUSH "+players[id].getDirection());
 				push.play();
+				players[id].is_pushing = true;
+			}
+			else{
+				if(players[id].is_pushing == true){
+					if(push_timer > 100){
+						players[id].is_pushing = false;
+						push_timer = 0;
+					}
+					else{
+						push_timer += delta;
+					}
+				}
 			}
 	
 			//increment downward acceleration by g if player is on air
