@@ -283,7 +283,7 @@ public class Client extends BasicGameState {
 	float push_timer = 0;
 	ShaderProgram hShader, vShader;
 	Image hImage, vImage, bg;
-	Image[] player_spritesheets = new Image[4];
+	Image[][] player_spritesheets = new Image[4][4];
 	Graphics hGraphics, vGraphics;
 	boolean ready, started, dead;
 	Sound cheer, jump, scream, push;
@@ -296,10 +296,15 @@ public class Client extends BasicGameState {
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
 		bg = new Image("img/bg.jpg");
-		player_spritesheets[0] = new Image("img/sprite_running.png");
-		player_spritesheets[1] = new Image("img/sprite_jumping.png");
-		player_spritesheets[2] = new Image("img/sprite_pushing.png");
-		player_spritesheets[3] = new Image("img/sprite_idle.png");
+		
+		for (int i = 0; i < 4; i++) {
+			player_spritesheets[i][0] = new Image("img/sprite_running" + i + ".png");
+			player_spritesheets[i][1] = new Image("img/sprite_jumping" + i + ".png");
+			player_spritesheets[i][2] = new Image("img/sprite_pushing" + i + ".png");
+			player_spritesheets[i][3] = new Image("img/sprite_idle" + i + ".png");
+		}
+		
+
 		cheer = new Sound("audio/cheer.ogg");
 		jump = new Sound("audio/jump.wav");
 		scream = new Sound("audio/scream.ogg");
@@ -325,7 +330,7 @@ public class Client extends BasicGameState {
 			else{
 				start_x = 555;
 			}
-			players[i] = new Player(player_spritesheets, start_x ,start_y);
+			players[i] = new Player(player_spritesheets[i], start_x ,start_y);
 		}
 		platforms[0] = new Rectangle(300,100,200,10);
 		platforms[1] = new Rectangle(100,180,200,10);
@@ -442,13 +447,6 @@ public class Client extends BasicGameState {
 			g.setColor(Color.orange); //GO ENGG
 			g.fill(players[id].getArrow());
 			g.setColor(Color.white);
-			
-			// Draw strings last; draw image first
-			/*
-			g.drawString(" " + thread.msg, 20, 20);
-			g.drawString("ID: " + id, 700, 20);
-			g.drawString("Drunk level: " + thread.drunk_level, 600, 560);
-			*/
 			
 			//PRINT WIN
 			if(thread.dead_players == active-1){

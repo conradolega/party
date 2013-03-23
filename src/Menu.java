@@ -2,6 +2,7 @@ import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.Input;
+import org.newdawn.slick.Music;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.gui.TextField;
 import org.newdawn.slick.state.BasicGameState;
@@ -12,6 +13,7 @@ public class Menu extends BasicGameState {
 
 	TextField ipfield, portfield;
 	Image logo;
+	Music splash;
 	
 	public Menu(int state) {
 		
@@ -27,6 +29,8 @@ public class Menu extends BasicGameState {
 		ipfield.setText("localhost");
 		portfield.setText("8888");
 		logo = new Image("img/logo.png");
+		splash = new Music("audio/splash.ogg");
+		splash.loop();
 	}
 
 	@Override
@@ -50,6 +54,7 @@ public class Menu extends BasicGameState {
 			Game game = (Game) sbg;
 			game.ip = ipfield.getText();
 			game.port = portfield.getText();
+			splash.stop();
 			sbg.enterState(Game.CLIENT);
 		}
 		if(input.isKeyPressed(Input.KEY_TAB)){
