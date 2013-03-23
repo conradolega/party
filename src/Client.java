@@ -282,7 +282,7 @@ public class Client extends BasicGameState {
 	float randX, randY, sway, swayY;
 	float push_timer = 0;
 	ShaderProgram hShader, vShader;
-	Image hImage, vImage, bg;
+	Image hImage, vImage, bg, lose, win;
 	Image[][] player_spritesheets = new Image[4][4];
 	Graphics hGraphics, vGraphics;
 	boolean ready, started, dead;
@@ -296,6 +296,8 @@ public class Client extends BasicGameState {
 	public void init(GameContainer gc, StateBasedGame sbg)
 			throws SlickException {
 		bg = new Image("img/bg.jpg");
+		lose = new Image("img/lose.png");
+		win = new Image("img/win.png");
 		
 		for (int i = 0; i < 4; i++) {
 			player_spritesheets[i][0] = new Image("img/sprite_running" + i + ".png");
@@ -448,16 +450,16 @@ public class Client extends BasicGameState {
 			g.fill(players[id].getArrow());
 			g.setColor(Color.white);
 			
+			g.translate(-sway, swayY);
+			
 			//PRINT WIN
 			if(thread.dead_players == active-1){
-				g.drawString("YOU WIN!!!!!!!", 200, 200);
+				g.drawImage(win, 0, 0);
 			}
 			
 			if (dead && thread.dead_players != active - 1) {
-				g.drawString("YOU LOSE!!!!!!!", 200, 200);
+				g.drawImage(lose, 0, 0);
 			}
-			
-			g.translate(-sway, swayY);
 		}
 		else if (!started && ready) {
 			g.drawString("Press ENTER to start", 100, 100);
