@@ -130,7 +130,7 @@ public class MyServer {
 				clients.get(clients.size() - 1).sendMessage("Number: " + (clients.size() - 1), false);
 				sendList();			
 				connected++;
-				if (connected >= 2) sendToAll("READY", false);
+				if (connected >= 1) sendToAll("READY", false);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
