@@ -294,6 +294,7 @@ public class Client extends BasicGameState {
 	Graphics hGraphics, vGraphics;
 	boolean ready, started, dead;
 	Sound cheer, jump, scream, push;
+	Music music;
 	
 	public Client(int state) {
 
@@ -321,6 +322,7 @@ public class Client extends BasicGameState {
 		scream = new Sound("audio/scream.ogg");
 		push = new Sound("audio/push.wav");
 		
+		music = new Music("audio/music.ogg");
 		//SET STARTING LOCATIONS
 		//160 120 - P1
 		//555 120 - P2
@@ -506,7 +508,7 @@ public class Client extends BasicGameState {
 				cheer.play();
 			}
 			
-			//if (!gotye.playing()) gotye.loop();
+			if (!music.playing()) music.loop();
 			
 			Input input = gc.getInput();
 			if (input.isKeyDown(Input.KEY_RIGHT)) {
