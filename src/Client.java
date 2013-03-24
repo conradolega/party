@@ -464,7 +464,7 @@ public class Client extends BasicGameState {
 			g.translate(-sway, swayY);
 			
 			//PRINT WIN
-			if(thread.dead_players == active-1){
+			if(thread.dead_players == active-1 && !dead){
 				g.drawImage(win, 0, 0);
 			}
 			
