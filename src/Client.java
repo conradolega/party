@@ -289,7 +289,7 @@ public class Client extends BasicGameState {
 	float randX, randY, sway, swayY;
 	float push_timer = 0;
 	ShaderProgram hShader, vShader;
-	Image hImage, vImage, bg, lose, win;
+	Image hImage, vImage, bg, lose, win, how, start;
 	Image[][] player_spritesheets = new Image[4][4];
 	Graphics hGraphics, vGraphics;
 	boolean ready, started, dead;
@@ -306,6 +306,8 @@ public class Client extends BasicGameState {
 		bg = new Image("img/bg.jpg");
 		lose = new Image("img/lose.png");
 		win = new Image("img/win.png");
+		how = new Image("img/how.jpg");
+		start = new Image("img/start.jpg");
 		
 		//SpriteSheet source:
 		//http://10firstgames.wordpress.com/2012/02/25/hd-sprite-sheet/
@@ -473,10 +475,10 @@ public class Client extends BasicGameState {
 			}
 		}
 		else if (!started && ready) {
-			g.drawString("Press ENTER to start", 100, 100);
+			g.drawImage(start, 0, 0);
 		}
 		else if (!started && !ready) {
-			g.drawString("Please wait for other players", 100, 100);
+			g.drawImage(how, 0, 0);
 		}
 	}
 
@@ -508,7 +510,7 @@ public class Client extends BasicGameState {
 				cheer.play();
 			}
 			
-			if (!music.playing()) music.loop();
+			if (!music.playing()) music.loop(1f, 0.8f);
 			
 			Input input = gc.getInput();
 			if (input.isKeyDown(Input.KEY_RIGHT)) {
