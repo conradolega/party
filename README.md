@@ -1,6 +1,6 @@
 ### PARTY
 
-Developed by [conradolega]((https://github.com/conradolega) and [aomanaloto1](https://github.com/aomanaloto1)
+Developed by [conradolega](https://github.com/conradolega) and [aomanaloto1](https://github.com/aomanaloto1)
 
 Using [Slick2D](http://www.slick2d.org/)
 
@@ -19,4 +19,4 @@ Splash music: [yours truly](https://github.com/conradolega)
 
 Everyone who loves to party.
 
-Keep partying!
+Keep on partying!
